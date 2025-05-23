@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Golf Caddie</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #2e7d32;
+            color: white;
+            padding: 1rem;
+            position: relative;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            margin: 0;
+        }
+
+        .gps-toggle {
+            background: none;
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .gps-toggle::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff6e40;
+        }
+
+        .gps-toggle.tracking {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
+        }
+
+        .gps-toggle.tracking::before {
+            background: #69f0ae;
+        }
+
+        .course-selector {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem;
+            border-radius: 8px;
+        }
+
+        .course-selector select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            font-size: 1rem;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+        }
+
+        .course-selector select option {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+
+        .info-panel {
+            background: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 2;
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .info-panel.collapsed {
+            transform: translateY(calc(100% - 80px));
+        }
+
+        .panel-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0.5rem auto;
+            cursor: pointer;
+        }
+
+        .distance-display {
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+            margin: 0.5rem 0;
+        }
+
+        .accuracy {
+            font-size: 0.875rem;
+            color: #666;
+            text-align: center;
+        }
+
+        .hole-list {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            margin: 0.5rem 0;
+        }
+
+        .hole-list::-webkit-scrollbar {
+            display: none;
+        }
+
+        .hole-button {
+            background: #f5f5f5;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hole-button.active {
+            background: #4caf50;
+            color: white;
+        }
+
+        .hole-number {
+            font-weight: bold;
+        }
+
+        .hole-par {
+            opacity: 0.7;
+            font-size: 0.875rem;
+        }
+
+        .hole-marker {
+            background: #2e7d32;
+            border: 2px solid white;
+            border-radius: 50%;
+            color: white;
+            width: 24px !important;
+            height: 24px !important;
+            line-height: 24px !important;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .hole-marker:hover {
+            transform: scale(1.1);
+            background: #4caf50;
+        }
+
+        .hole-marker.active {
+            background: #4caf50;
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .player-marker {
+            background: #ff6e40;
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 16px !important;
+            height: 16px !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <header class="header">
+        <div class="header-content">
+            <h1>Smart Golf Caddie</h1>
+            <button id="gpsButton" class="gps-toggle">GPS Off</button>
+        </div>
+        <div class="course-selector">
+            <select id="courseSelect">
+                <option value="">Select Course</option>
+            </select>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div id="map"></div>
+
+        <div class="info-panel collapsed" id="infoPanel">
+            <div class="panel-handle" id="panelHandle"></div>
+            <div class="distance-display" id="distanceDisplay">
+                Select Hole
+            </div>
+            <div class="accuracy" id="accuracyDisplay"></div>
+            <div class="hole-list" id="holeGrid"></div>
+        </div>
+    </main>
+</div>
+
+<script>
+    // Golf course data will be loaded from courses.json
+    let COURSES = {};
+
+    // App state
+    let currentCourse = null;
+    let selectedHole = null;
+    let isTracking = false;
+    let watchId = null;
+    let map = null;
+    let playerMarker = null;
+    let distanceLine = null;
+    let holeMarkers = {};
+
+    // Load course data and initialize
+    async function initializeCourses() {
+        try {
+            const response = await fetch('courses.json');
+            if (!response.ok) {
+                throw new Error('Failed to load course data');
+            }
+            COURSES = await response.json();
+
+            // Populate course selector
+            const courseSelect = document.getElementById('courseSelect');
+            Object.entries(COURSES).forEach(([id, course]) => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = course.name;
+                courseSelect.appendChild(option);
+            });
+
+            // Initialize with first course
+            courseSelect.value = 'candler-park';
+            courseSelect.dispatchEvent(new Event('change'));
+        } catch (error) {
+            console.error('Error loading courses:', error);
+            alert('Error loading course data. Please try again later.');
+        }
+    }
+
+    // Course selection handler
+    courseSelect.addEventListener('change', () => {
+        const courseId = courseSelect.value;
+        if (courseId) {
+            currentCourse = COURSES[courseId];
+            initializeMap();
+            createHoleGrid();
+        }
+    });
+
+    // Initialize map
+    function initializeMap() {
+        if (map) {
+            map.remove();
+        }
+
+        map = L.map('map').setView(currentCourse.center, currentCourse.zoom);
+
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri'
+        }).addTo(map);
+
+        // Add hole markers
+        Object.entries(currentCourse.holes).forEach(([number, position]) => {
+            const icon = L.divIcon({
+                className: 'hole-marker' + (selectedHole === number ? ' active' : ''),
+                html: number
+            });
+
+            holeMarkers[number] = L.marker([position.lat, position.lon], {icon})
+                .on('click', () => selectHole(number))
+                .addTo(map);
+        });
+    }
+
+    // Create hole selection list
+    function createHoleGrid() {
+        const grid = document.getElementById('holeGrid');
+        grid.innerHTML = '';
+
+        Object.entries(currentCourse.holes).forEach(([number, data]) => {
+            const button = document.createElement('button');
+            button.className = 'hole-button' + (selectedHole === number ? ' active' : '');
+            button.innerHTML = `
+                    <span class="hole-number">#${number}</span>
+                    <span class="hole-par">Par ${data.par}</span>
+                `;
+
+            button.addEventListener('click', () => selectHole(number));
+            grid.appendChild(button);
+        });
+    }
+
+    // Hole selection handler
+    function selectHole(number) {
+        selectedHole = number;
+
+        // Update hole list UI
+        document.querySelectorAll('.hole-button').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.querySelector('.hole-number').textContent === `#${number}`) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Update map markers
+        Object.entries(holeMarkers).forEach(([holeNum, marker]) => {
+            const icon = L.divIcon({
+                className: 'hole-marker' + (holeNum === number ? ' active' : ''),
+                html: holeNum
+            });
+            marker.setIcon(icon);
+        });
+
+        // Ensure selected hole button is visible in the list
+        const activeButton = document.querySelector('.hole-button.active');
+        if (activeButton) {
+            activeButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+
+        if (playerMarker) {
+            updateDistanceLine();
+            updateDistance();
+        }
+
+        // Auto-collapse the panel after selection
+        infoPanel.classList.add('collapsed');
+    }
+
+    // Calculate distance (Haversine formula)
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
+
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+        return R * c;
+    }
+
+    // Convert meters to yards
+    function metersToYards(meters) {
+        return Math.round(meters * 1.09361);
+    }
+
+    // Update distance line on map
+    function updateDistanceLine() {
+        if (!selectedHole || !playerMarker) return;
+
+        const hole = currentCourse.holes[selectedHole];
+        const playerPos = playerMarker.getLatLng();
+
+        if (distanceLine) {
+            map.removeLayer(distanceLine);
+        }
+
+        distanceLine = L.polyline([
+            [playerPos.lat, playerPos.lng],
+            [hole.lat, hole.lon]
+        ], {
+            color: '#ff6e40',
+            weight: 2,
+            opacity: 0.8,
+            dashArray: '5, 10'
+        }).addTo(map);
+    }
+
+    // Update distance display
+    function updateDistance() {
+        if (!selectedHole || !playerMarker) return;
+
+        const hole = currentCourse.holes[selectedHole];
+        const playerPos = playerMarker.getLatLng();
+
+        const distance = calculateDistance(
+            playerPos.lat,
+            playerPos.lng,
+            hole.lat,
+            hole.lon
+        );
+
+        const yards = metersToYards(distance);
+        document.getElementById('distanceDisplay').textContent = `${yards} yards to hole ${selectedHole}`;
+    }
+
+    // Handle GPS tracking
+    const gpsButton = document.getElementById('gpsButton');
+    gpsButton.addEventListener('click', toggleTracking);
+
+    function toggleTracking() {
+        if (isTracking) {
+            stopTracking();
+            gpsButton.textContent = 'GPS Off';
+            gpsButton.classList.remove('tracking');
+        } else {
+            startTracking();
+            gpsButton.textContent = 'GPS On';
+            gpsButton.classList.add('tracking');
+        }
+    }
+
+    function startTracking() {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+
+        watchId = navigator.geolocation.watchPosition(
+            updatePosition,
+            handleError,
+            {
+                enableHighAccuracy: true,
+                timeout: 5000,
+                maximumAge: 0
+            }
+        );
+
+        isTracking = true;
+    }
+
+    function stopTracking() {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
+        isTracking = false;
+
+        // Clear player marker and distance line
+        if (playerMarker) {
+            map.removeLayer(playerMarker);
+            playerMarker = null;
+        }
+        if (distanceLine) {
+            map.removeLayer(distanceLine);
+            distanceLine = null;
+        }
+
+        document.getElementById('distanceDisplay').textContent = 'Select Hole';
+        document.getElementById('accuracyDisplay').textContent = '';
+    }
+
+    function updatePosition(position) {
+        const pos = [position.coords.latitude, position.coords.longitude];
+
+        if (!playerMarker) {
+            const icon = L.divIcon({ className: 'player-marker' });
+            playerMarker = L.marker(pos, {icon}).addTo(map);
+        } else {
+            playerMarker.setLatLng(pos);
+        }
+
+        if (selectedHole) {
+            updateDistanceLine();
+            updateDistance();
+        }
+
+        const accuracyYards = metersToYards(position.coords.accuracy);
+        document.getElementById('accuracyDisplay').textContent =
+            `GPS Accuracy: ±${accuracyYards} yards`;
+    }
+
+    function handleError(error) {
+        if (error.code === 1) {
+            alert('Please enable location services to use this app');
+            stopTracking();
+        } else {
+            alert('Error getting your location');
+        }
+    }
+
+    // Panel collapse functionality
+    const infoPanel = document.getElementById('infoPanel');
+    const panelHandle = document.getElementById('panelHandle');
+    let isDragging = false;
+    let startY = 0;
+    let startTransform = 0;
+
+    panelHandle.addEventListener('click', () => {
+        infoPanel.classList.toggle('collapsed');
+    });
+
+    // Touch handling for smooth dragging
+    panelHandle.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        startTransform = infoPanel.classList.contains('collapsed') ? 100 : 0;
+        infoPanel.style.transition = 'none';
+    });
+
+    document.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+
+        const deltaY = e.touches[0].clientY - startY;
+        const percentMove = (deltaY / window.innerHeight) * 100;
+        const newTransform = Math.max(0, Math.min(100, startTransform + percentMove));
+
+        infoPanel.style.transform = `translateY(${newTransform}%)`;
+    });
+
+    document.addEventListener('touchend', () => {
+        if (!isDragging) return;
+
+        isDragging = false;
+        infoPanel.style.transition = 'transform 0.3s ease';
+
+        const currentTransform = parseInt(infoPanel.style.transform.match(/-?\d+/)[0]);
+        if (currentTransform > 50) {
+            infoPanel.classList.add('collapsed');
+            infoPanel.style.transform = '';
+        } else {
+            infoPanel.classList.remove('collapsed');
+            infoPanel.style.transform = '';
+        }
+    });
+
+    // Load initial course data
+    initializeCourses();
+</script>
+</body>
+</html>
