@@ -513,6 +513,27 @@
         }
 
         async function loadPendingCourses() {
+    if (!isAdmin) return;
+
+    try {
+        // NEW: Call the RPC function instead of building a select query.
+        const { data: rawData, error } = await supabaseClient
+            .rpc('get_pending_courses_for_admin');
+
+        if (error) throw error;
+
+        // The RPC returns a single JSON object which is an array of courses.
+        // If no courses are found, it might be null, so we default to an empty array.
+        const courses = rawData || [];
+
+        displayPendingCourses(courses);
+
+    } catch (error) {
+        console.error('Error loading pending courses:', error);
+        document.getElementById('pendingCourses').innerHTML = 
+            '<div class="error">Error loading pending courses</div>';
+    }
+}
             if (!isAdmin) return;
 
             try {
@@ -761,6 +782,120 @@
         }
 
         async function saveCourse(e) {
+    e.preventDefault();
+    
+    const courseName = document.getElementById('courseName').value.trim();
+    
+    if (!courseName) {
+        courseError.textContent = 'Course name is required';
+        return;
+    }
+
+    if (courseHoles.length === 0) {
+        courseError.textContent = 'At least one hole is required';
+        return;
+    }
+
+    saveCourseBtn.disabled = true;
+    saveCourseBtn.textContent = 'Checking...';
+    courseError.textContent = '';
+
+    // NEW: Check if a course with the same name already exists
+    // Only check if it's a new course, or if the name has changed on an existing course
+    if (!editingCourse || (editingCourse && editingCourse.name !== courseName)) {
+        const { data: existingCourse, error: checkError } = await supabaseClient
+            .from('courses')
+            .select('name')
+            .eq('name', courseName)
+            .single();
+
+        // PGRST116 is the "no rows returned" error, which is the expected outcome if the name is available.
+        // We only want to stop if there's a different, real error.
+        if (checkError && checkError.code !== 'PGRST116') {
+            courseError.textContent = `Error checking course name: ${checkError.message}`;
+            saveCourseBtn.disabled = false;
+            saveCourseBtn.textContent = 'Save Course';
+            return;
+        }
+
+        if (existingCourse) {
+            courseError.textContent = 'A course with this name already exists.';
+            saveCourseBtn.disabled = false;
+            saveCourseBtn.textContent = 'Save Course';
+            return;
+        }
+    }
+
+    saveCourseBtn.textContent = 'Saving...';
+
+    try {
+        let courseData = {
+            name: courseName,
+            center_lat: courseCenter[0],
+            center_lon: courseCenter[1],
+            zoom: 16,
+            // status is handled by the database default ('pending')
+        };
+
+        let courseId;
+        
+        if (editingCourse) {
+            // Update existing course
+            // We remove status here so it isn't reset to pending on every edit
+            const { error } = await supabaseClient
+                .from('courses')
+                .update(courseData)
+                .eq('id', editingCourse.id);
+            
+            if (error) throw error;
+            courseId = editingCourse.id;
+
+            // Delete existing holes to replace them
+            await supabaseClient
+                .from('holes')
+                .delete()
+                .eq('course_id', courseId);
+        } else {
+            // Create new course
+            courseData.created_by = currentUser.id;
+            
+            const { data, error } = await supabaseClient
+                .from('courses')
+                .insert(courseData)
+                .select()
+                .single();
+            
+            if (error) throw error;
+            courseId = data.id;
+        }
+
+        // Insert holes
+        const holesData = courseHoles.map(hole => ({
+            course_id: courseId,
+            hole_number: hole.number,
+            lat: hole.lat,
+            lon: hole.lon,
+            par: hole.par
+        }));
+
+        const { error: holesError } = await supabaseClient
+            .from('holes')
+            .insert(holesData);
+
+        if (holesError) throw holesError;
+
+        closeCourseModal();
+        await loadUserCourses();
+        if (isAdmin) await loadPendingCourses();
+        
+    } catch (error) {
+        console.error('Error saving course:', error);
+        courseError.textContent = error.message;
+    } finally {
+        saveCourseBtn.disabled = false;
+        saveCourseBtn.textContent = 'Save Course';
+    }
+        }
             e.preventDefault();
             
             const courseName = document.getElementById('courseName').value.trim();
