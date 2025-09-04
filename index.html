@@ -732,7 +732,7 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 260px;
+            width: 80%;
             height: 100%;
             background: var(--surface);
             box-shadow: 2px 0 12px var(--shadow-strong);
@@ -810,6 +810,16 @@
             min-width: 44px;
         }
 
+        /* Course display bar */
+        .course-display {
+            text-align: center;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            background: var(--surface-variant);
+            color: var(--on-surface);
+            border-bottom: 1px solid var(--outline);
+        }
+
         /* Focus improvements */
         .focus-visible {
             outline: 2px solid var(--secondary-green);
@@ -828,7 +838,17 @@
             <div class="header-actions"><!-- GPS toggle moved into bottom panel --></div>
         </div>
         
-        <div class="course-selector">
+        <!-- Static current-course label below header -->
+        <div id="courseDisplay" class="course-display">Loading courses...</div>
+    </header>
+
+    <!-- Side Menu -->
+    <div id="sideMenu" class="side-menu">
+        <div class="side-menu-header">
+            <button class="icon-btn" id="sideMenuClose" aria-label="Close">&times;</button>
+        </div>
+        <!-- Course selector moved into menu -->
+        <div class="course-selector" style="padding:0 1rem 1rem 1rem;">
             <div class="course-dropdown">
                 <div class="dropdown-trigger" id="dropdownTrigger">
                     <div class="course-info">
@@ -839,13 +859,6 @@
                 </div>
                 <div class="dropdown-options" id="dropdownOptions"></div>
             </div>
-        </div>
-    </header>
-
-    <!-- Side Menu -->
-    <div id="sideMenu" class="side-menu">
-        <div class="side-menu-header">
-            <button class="icon-btn" id="sideMenuClose" aria-label="Close">&times;</button>
         </div>
         <nav class="side-menu-content">
             <button class="side-menu-item" id="helpBtn" aria-label="Help">❓ Help</button>
@@ -981,6 +994,7 @@ const gpsToggle = document.getElementById('gpsToggle');
 const holeGrid = document.getElementById('holeGrid');
 const distanceDisplay = document.getElementById('distanceDisplay');
 const distanceMessage = document.getElementById('distanceMessage');
+const courseDisplay = document.getElementById('courseDisplay');
 
 const sideMenu = document.getElementById('sideMenu');
 const sideMenuOverlay = document.getElementById('sideMenuOverlay');
@@ -1149,6 +1163,10 @@ function updateDropdownDisplay(name, meta) {
     const courseInfo = dropdownTrigger.querySelector('.course-info');
     courseInfo.querySelector('.course-name').textContent = name;
     courseInfo.querySelector('.course-meta').textContent = meta;
+
+    if (courseDisplay) {
+        courseDisplay.textContent = name;
+    }
 }
 
 function toggleDropdown() {
@@ -1603,6 +1621,8 @@ function openSideMenu() {
 function closeSideMenu() {
     sideMenu.classList.remove('active');
     sideMenuOverlay.classList.remove('active');
+    // Close course dropdown if it is open
+    closeDropdown();
 }
 
 // Add CSS animations for toasts
