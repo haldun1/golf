@@ -356,6 +356,32 @@
             border-radius: var(--radius-md);
         }
 
+        /* Inline version used inside distance-meta */
+        .gps-section.inline {
+            gap: 0.35rem;
+            background: none;
+        }
+        .gps-section.inline .gps-label {
+            font-weight: 500;
+            color: var(--on-surface-variant);
+            font-size: 0.875rem;
+        }
+        .gps-section.inline .gps-toggle {
+            width: 48px;
+            height: 28px;
+            /* remove scale to avoid mis-alignment */
+            display: inline-block;
+        }
+        .gps-section.inline .gps-toggle .gps-slider {
+            width: 24px;
+            height: 24px;
+            top: 2px;
+            left: 2px;
+        }
+        .gps-section.inline .gps-toggle.active .gps-slider {
+            transform: translateX(20px);
+        }
+
         .gps-toggle {
             position: relative;
             width: 56px;
@@ -364,6 +390,9 @@
             background: red;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            padding: 2px; /* ensure slider centered vertically */
         }
 
         .gps-toggle.active {
@@ -698,6 +727,83 @@
             }
         }
 
+        /* Side Menu */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 260px;
+            height: 100%;
+            background: var(--surface);
+            box-shadow: 2px 0 12px var(--shadow-strong);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1500;
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0;
+            padding-top: calc(env(safe-area-inset-top, 0) + 1rem);
+        }
+
+        .side-menu.active {
+            transform: translateX(0);
+        }
+
+        .side-menu-header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 0 1rem 1rem 1rem;
+        }
+
+        .side-menu-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .side-menu-item {
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 1rem;
+            color: var(--on-surface);
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: background 0.2s ease;
+        }
+
+        .side-menu-item:hover, .side-menu-item:focus {
+            background: var(--surface-variant);
+        }
+
+        .side-menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.4);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+            z-index: 1400;
+        }
+
+        .side-menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .left-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
         /* Touch improvements */
         .touchable {
             min-height: 44px;
@@ -715,19 +821,11 @@
 <div class="app-container">
     <header class="header">
         <div class="header-top">
-            <div class="logo">Simple Range Finder</div>
-            <div class="header-actions">
-                <div class="gps-section">
-                    <div class="gps-label">GPS</div>
-                    <div class="gps-toggle" id="gpsToggle">
-                        <div class="gps-slider"></div>
-                    </div>
-                </div>
-                <button class="icon-btn" id="helpBtn" aria-label="Help">?</button>
-                <button class="icon-btn" id="loginBtn" aria-label="Login">👤</button>
-                <button class="icon-btn" id="dashboardBtn" style="display: none;" aria-label="Dashboard">📊</button>
-                <button class="icon-btn" id="logoutBtn" style="display: none;" aria-label="Logout">⎋</button>
+            <div class="left-header">
+                <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+                <div class="logo">Simple Range Finder</div>
             </div>
+            <div class="header-actions"><!-- GPS toggle moved into bottom panel --></div>
         </div>
         
         <div class="course-selector">
@@ -744,6 +842,20 @@
         </div>
     </header>
 
+    <!-- Side Menu -->
+    <div id="sideMenu" class="side-menu">
+        <div class="side-menu-header">
+            <button class="icon-btn" id="sideMenuClose" aria-label="Close">&times;</button>
+        </div>
+        <nav class="side-menu-content">
+            <button class="side-menu-item" id="helpBtn" aria-label="Help">❓ Help</button>
+            <button class="side-menu-item" id="loginBtn" aria-label="Login">👤 Login</button>
+            <button class="side-menu-item" id="dashboardBtn" style="display: none;" aria-label="Dashboard">📊 Dashboard</button>
+            <button class="side-menu-item" id="logoutBtn" style="display: none;" aria-label="Logout">⎋ Logout</button>
+        </nav>
+    </div>
+    <div id="sideMenuOverlay" class="side-menu-overlay"></div>
+
     <main class="main-content">
         <div id="map"></div>
 
@@ -753,9 +865,11 @@
                 <div class="distance-section">
                     <div class="distance-display" id="distanceDisplay">Select a Hole</div>
                     <div class="distance-meta">
-                        <div class="status-indicator">
-                            <div class="status-dot" id="gpsStatusDot"></div>
-                            <span id="gpsStatusText">GPS Off</span>
+                        <div class="gps-section inline">
+                            <span class="gps-label">GPS</span>
+                            <div class="gps-toggle" id="gpsToggle">
+                                <div class="gps-slider"></div>
+                            </div>
                         </div>
                         <div class="status-indicator" id="accuracyDisplay" style="display: none;">
                             <div class="status-dot"></div>
@@ -863,11 +977,13 @@ const dropdownTrigger = document.getElementById('dropdownTrigger');
 const dropdownOptions = document.getElementById('dropdownOptions');
 const dropdownArrow = document.getElementById('dropdownArrow');
 const gpsToggle = document.getElementById('gpsToggle');
-const gpsStatusDot = document.getElementById('gpsStatusDot');
-const gpsStatusText = document.getElementById('gpsStatusText');
+// GPS status indicator now combined with toggle – no separate dot/text
 const holeGrid = document.getElementById('holeGrid');
 const distanceDisplay = document.getElementById('distanceDisplay');
 const distanceMessage = document.getElementById('distanceMessage');
+
+const sideMenu = document.getElementById('sideMenu');
+const sideMenuOverlay = document.getElementById('sideMenuOverlay');
 
 // Initialize app
 async function initializeApp() {
@@ -886,6 +1002,13 @@ async function initializeApp() {
 }
 
 function setupEventListeners() {
+    // Side menu toggle
+    const menuBtn = document.getElementById('menuBtn');
+    const sideMenuClose = document.getElementById('sideMenuClose');
+    menuBtn.addEventListener('click', openSideMenu);
+    sideMenuClose.addEventListener('click', closeSideMenu);
+    sideMenuOverlay.addEventListener('click', closeSideMenu);
+
     // Dashboard button
     document.getElementById('dashboardBtn').addEventListener('click', () => {
     window.location.href = 'dashboard.html';
@@ -1079,8 +1202,6 @@ function startGPS() {
 
     isTracking = true;
     gpsToggle.classList.add('active');
-    gpsStatusDot.classList.add('active');
-    gpsStatusText.textContent = 'GPS On';
     updateDistanceMessage();
 }
 
@@ -1092,8 +1213,6 @@ function stopGPS() {
 
     isTracking = false;
     gpsToggle.classList.remove('active');
-    gpsStatusDot.classList.remove('active');
-    gpsStatusText.textContent = 'GPS Off';
 
     if (playerMarker) {
         map.removeLayer(playerMarker);
@@ -1473,6 +1592,17 @@ function clearAuthError() {
     const errorElement = document.getElementById('authError');
     errorElement.textContent = '';
     errorElement.style.display = 'none';
+}
+
+// Side menu controls
+function openSideMenu() {
+    sideMenu.classList.add('active');
+    sideMenuOverlay.classList.add('active');
+}
+
+function closeSideMenu() {
+    sideMenu.classList.remove('active');
+    sideMenuOverlay.classList.remove('active');
 }
 
 // Add CSS animations for toasts
