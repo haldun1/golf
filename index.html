@@ -507,16 +507,17 @@
 
     async function loadCourses() {
         try {
-            const { data, error } = await supabaseClient
-                .from('courses')
-                .select(`
-                    *,
-                    holes (*)
-                `)
-                .eq('status', 'approved')
-                .order('name');
+        // The RLS policy now handles all the security, so we can
+        // just ask for all the courses this user is allowed to see.
+        const { data, error } = await supabaseClient
+            .from('courses')
+            .select(`
+                *,
+                holes (*)
+            `)
+            .order('name'); // No more .eq('status', 'approved')
 
-            if (error) throw error;
+        if (error) throw error;
 
             courses = data.map(course => ({
                 id: course.id,
