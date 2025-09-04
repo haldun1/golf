@@ -13,7 +13,7 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-        }
+}
 
         :root {
             --primary-green: #2e7d32;
@@ -820,6 +820,22 @@
             border-bottom: 1px solid var(--outline);
         }
 
+        /* dropdown search */
+        .dropdown-search {
+            padding: 0.75rem 1rem 0.25rem 1rem;
+        }
+        .dropdown-search input {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid var(--outline);
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+        }
+        .dropdown-search input:focus {
+            outline: none;
+            border-color: var(--secondary-green);
+        }
+
         /* Focus improvements */
         .focus-visible {
             outline: 2px solid var(--secondary-green);
@@ -850,6 +866,9 @@
         <!-- Course selector moved into menu -->
         <div class="course-selector" style="padding:0 1rem 1rem 1rem;">
             <div class="course-dropdown">
+                <div class="dropdown-search">
+                    <input id="courseSearch" type="search" placeholder="Search courses…" autocomplete="off">
+                </div>
                 <div class="dropdown-trigger" id="dropdownTrigger">
                     <div class="course-info">
                         <div class="course-name">Loading courses...</div>
@@ -989,6 +1008,7 @@ const panelHandle = document.getElementById('panelHandle');
 const dropdownTrigger = document.getElementById('dropdownTrigger');
 const dropdownOptions = document.getElementById('dropdownOptions');
 const dropdownArrow = document.getElementById('dropdownArrow');
+const courseSearch = document.getElementById('courseSearch');
 const gpsToggle = document.getElementById('gpsToggle');
 // GPS status indicator now combined with toggle – no separate dot/text
 const holeGrid = document.getElementById('holeGrid');
@@ -1037,6 +1057,8 @@ function setupEventListeners() {
     e.stopPropagation();
     toggleDropdown();
 });
+    // Search filter
+    courseSearch.addEventListener('input', handleCourseSearch);
     
     // GPS toggle
     gpsToggle.addEventListener('click', toggleGPS);
@@ -1181,11 +1203,24 @@ function toggleDropdown() {
 function openDropdown() {
     dropdownOptions.classList.add('active');
     dropdownArrow.classList.add('open');
+    setTimeout(() => courseSearch?.focus(), 0);
 }
 
 function closeDropdown() {
     dropdownOptions.classList.remove('active');
     dropdownArrow.classList.remove('open');
+    if (courseSearch) {
+        courseSearch.value = '';
+        handleCourseSearch({ target: { value: '' }});
+    }
+}
+
+function handleCourseSearch(e) {
+    const term = e.target.value.trim().toLowerCase();
+    dropdownOptions.querySelectorAll('.dropdown-option').forEach(opt => {
+        const name = opt.querySelector('.course-name').textContent.toLowerCase();
+        opt.style.display = name.includes(term) ? '' : 'none';
+    });
 }
 
 function togglePanel() {
