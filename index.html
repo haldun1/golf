@@ -171,16 +171,16 @@
 
         .dropdown-options {
     position: absolute;
-    top: calc(100% + 4px); /* Use calc for precise positioning */
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
     background: var(--primary-green);
-    border: 1px solid #ccc; /* Use solid color for debugging */
+    border: 1px solid #ccc;
     border-radius: var(--radius-md);
-    box-shadow: 0 8px 24px rgba(235, 227, 227, 0.2); /* Use solid shadow */
+    box-shadow: 0 8px 24px rgba(235, 227, 227, 0.2);
     max-height: 60vh;
     overflow-y: auto;
-    z-index: 9999; /* Much higher z-index */
+    z-index: 9999;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -199,9 +199,9 @@
     justify-content: space-between;
     padding: 1rem;
     cursor: pointer;
-    border-bottom: 1px solid var(--outline);
+    border-bottom: 1px solid var(--secondary-green);
     transition: background 0.2s ease;
-    color: var(--on-surface); /* Ensure text is visible */
+    color: white;
 }
 
 .dropdown-option:last-child {
@@ -213,12 +213,12 @@
 }
 
 .dropdown-option .course-name {
-    color: var(--on-surface); /* Ensure course name is visible */
+    color: white;
     font-weight: 500;
 }
 
 .dropdown-option .course-meta {
-    color: var(--on-surface-variant);
+    color: var(--light-green);
     font-size: 0.875rem;
 }
 
@@ -229,7 +229,7 @@
 
         .course-tag {
             background: var(--secondary-green);
-            color: white;
+            color: black;
             padding: 0.25rem 0.5rem;
             border-radius: var(--radius-sm);
             font-size: 0.625rem;
@@ -345,84 +345,50 @@
         .distance-message {
             font-size: 0.875rem;
             color: var(--on-surface-variant);
-            margin-bottom: 0.5rem;
         }
 
-        /* GPS Toggle Redesign - More Prominent */
-.gps-section {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.5rem;
-    background: linear-gradient(135deg, var(--light-green) 0%, #f1f8e9 100%);
-    border: 2px solid var(--secondary-green);
-    border-radius: var(--radius-lg);
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
-}
+        /* GPS Toggle Redesign */
+        .gps-section {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            border-radius: var(--radius-md);
+        }
 
-.gps-info {
-    flex: 1;
-}
+        .gps-toggle {
+            position: relative;
+            width: 56px;
+            height: 32px;
+            border-radius: 16px;
+            background: red;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
 
-.gps-label {
-    font-weight: 700;
-    font-size: 1.125rem;
-    color: var(--primary-green);
-    margin-bottom: 0.25rem;
-}
+        .gps-toggle.active {
+            background: var(--secondary-green);
+        }
 
-.gps-description {
-    font-size: 0.875rem;
-    color: var(--dark-green);
-    opacity: 0.8;
-}
+        .gps-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: white;
+            transition: transform 0.3s ease;
+            box-shadow: 0 2px 4px var(--shadow);
+        }
 
-.gps-toggle {
-    position: relative;
-    width: 64px;
-    height: 36px;
-    border-radius: 18px;
-    background: var(--outline);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+        .gps-toggle.active .gps-slider {
+            transform: translateX(24px);
+        }
 
-.gps-toggle.active {
-    background: var(--secondary-green);
-    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
-}
-
-.gps-slider {
-    position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: white;
-    transition: transform 0.3s ease;
-    box-shadow: 0 2px 6px var(--shadow);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.75rem;
-}
-
-.gps-toggle.active .gps-slider {
-    transform: translateX(28px);
-}
-
-.gps-slider::before {
-    content: "📍";
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.gps-toggle.active .gps-slider::before {
-    opacity: 1;
-}
+        .gps-label {
+            font-weight: 600;
+            color: white;
 
         /* Hole Grid Improvements */
         .holes-section h3 {
@@ -514,13 +480,14 @@
     background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%) !important;
     border: 3px solid white !important;
     border-radius: 50% !important;
-    width: 20px !important;
-    height: 20px !important;
+            width: 20px !important;
+            height: 20px !important;
     box-shadow: 0 3px 8px var(--shadow-strong) !important;
-    animation: playerPulse 2s infinite;
+            animation: playerPulse 2s infinite;
     position: relative !important;
     z-index: 1000 !important;
-}
+        }
+        
         @keyframes playerPulse {
             0%, 100% { 
                 transform: scale(1);
@@ -760,6 +727,12 @@
         <div class="header-top">
             <div class="logo">Simple Range Finder</div>
             <div class="header-actions">
+                <div class="gps-section">
+                    <div class="gps-label">GPS</div>
+                    <div class="gps-toggle" id="gpsToggle">
+                        <div class="gps-slider"></div>
+                    </div>
+                </div>
                 <button class="icon-btn" id="helpBtn" aria-label="Help">?</button>
                 <button class="icon-btn" id="loginBtn" aria-label="Login">👤</button>
                 <button class="icon-btn" id="dashboardBtn" style="display: none;" aria-label="Dashboard">📊</button>
@@ -798,22 +771,11 @@
                             <div class="status-dot"></div>
                             <span></span>
                         </div>
-                    </div>
-                    <div class="distance-message" id="distanceMessage">
-                        Turn on GPS and select a hole to measure distance
-                    </div>
-                </div>
-
-                <div class="gps-section">
-                    <div class="gps-info">
-                        <div class="gps-label">GPS Tracking</div>
-                        <div class="gps-description">Enable precise distance measurements</div>
-                    </div>
-                    <div class="gps-toggle" id="gpsToggle">
-                        <div class="gps-slider"></div>
+                        <div class="distance-message" id="distanceMessage">
+                            Turn on and select a hole to measure distance
+                        </div>    
                     </div>
                 </div>
-
                 <div class="holes-section">
                     <h3>Select Hole</h3>
                     <div class="hole-grid" id="holeGrid">
@@ -942,7 +904,6 @@ function setupEventListeners() {
     dropdownTrigger.addEventListener('click', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Dropdown trigger clicked');
     toggleDropdown();
 });
     
@@ -1340,7 +1301,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 function updateDistanceMessage() {
     if (!isTracking) {
-        distanceMessage.textContent = 'Turn on GPS to measure distances';
+        distanceMessage.textContent = 'Turn on to measure distances';
     } else if (!selectedHole) {
         distanceMessage.textContent = 'Tap a hole to measure distance';
     } else {
@@ -1497,14 +1458,6 @@ function clearAuthError() {
     const errorElement = document.getElementById('authError');
     errorElement.textContent = '';
     errorElement.style.display = 'none';
-}
-
-function debugDropdown() {
-    console.log('Dropdown trigger:', dropdownTrigger);
-    console.log('Dropdown options:', dropdownOptions);
-    console.log('Options innerHTML:', dropdownOptions.innerHTML);
-    console.log('Options computed style:', window.getComputedStyle(dropdownOptions));
-    console.log('Is active?', dropdownOptions.classList.contains('active'));
 }
 
 // Add CSS animations for toasts
