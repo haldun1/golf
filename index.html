@@ -51,10 +51,12 @@
         .user-controls {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
         }
 
-        .auth-btn, .gps-toggle {
+        .auth-btn {
             background: none;
             border: 2px solid rgba(255,255,255,0.3);
             color: white;
@@ -67,24 +69,55 @@
             gap: 0.5rem;
             transition: all 0.2s ease;
             text-decoration: none;
+            white-space: nowrap;
         }
 
-        .auth-btn:hover, .gps-toggle:hover {
+        .auth-btn:hover {
             background: rgba(255,255,255,0.1);
             border-color: rgba(255,255,255,0.5);
         }
 
-        .gps-toggle::before {
-            content: '';
-            display: block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #ff6e40;
+        .gps-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: none;
+            color: white;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
         }
 
-        .gps-toggle.tracking::before {
-            background: #69f0ae;
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 24px;
+            border-radius: 12px;
+            background-color: #ff6e40;
+            transition: background-color 0.3s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        .toggle-switch.tracking {
+            background-color: #69f0ae;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.tracking .toggle-slider {
+            transform: translateX(24px);
         }
 
         .course-selector {
@@ -125,11 +158,7 @@
             min-height: 44px;
         }
 
-        .dropdown-selected::after {
-            content: '▼';
-            font-size: 0.75rem;
-            opacity: 0.7;
-        }
+        /* Removed the ::after chevron since we're adding it manually in the JS */
 
         .dropdown-options {
             position: absolute;
@@ -284,6 +313,13 @@
             margin: 0.5rem 0;
         }
 
+        .distance-message {
+            text-align: center;
+            font-size: 1rem;
+            color: #666;
+            margin: 0.5rem 0;
+        }
+
         .accuracy {
             font-size: 0.875rem;
             color: #666;
@@ -334,28 +370,30 @@
 
         .hole-marker {
             background: #2e7d32;
-            border: 2px solid white;
+            border: 3px solid white;
             border-radius: 50%;
             color: white;
-            width: 24px !important;
-            height: 24px !important;
-            line-height: 24px !important;
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 28px !important;
             text-align: center;
             font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
             cursor: pointer;
             transition: all 0.2s ease;
+            font-size: 14px;
         }
 
         .hole-marker:hover {
-            transform: scale(1.1);
+            transform: scale(1.2);
             background: #4caf50;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         }
 
         .hole-marker.active {
             background: #4caf50;
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            transform: scale(1.2);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         .player-marker {
@@ -496,7 +534,15 @@
                     <a href="dashboard.html" class="auth-btn">Dashboard</a>
                     <button id="logoutBtn" class="auth-btn">Logout</button>
                 </div>
-                <button id="gpsButton" class="gps-toggle">GPS Off</button>
+                <div class="gps-toggle">
+                    <span id="gpsStatus">GPS Off</span>
+                    <button id="gpsButton" class="toggle-switch">
+                        <span class="toggle-slider"></span>
+                    </button>
+                </div>
+                <button id="helpBtn" class="auth-btn">
+                    <span>Help</span>
+                </button>
             </div>
         </div>
         <div class="course-selector">
@@ -520,6 +566,9 @@
             <div class="panel-handle" id="panelHandle"></div>
             <div class="distance-display" id="distanceDisplay">
                 Select Hole
+            </div>
+            <div class="distance-message" id="distanceMessage">
+                Turn on GPS and select a hole to measure distance
             </div>
             <div class="accuracy" id="accuracyDisplay"></div>
             <div class="hole-list" id="holeGrid"></div>
@@ -547,6 +596,44 @@
         <p id="authSwitch" style="margin-top: 1rem; text-align: center; cursor: pointer; color: #2e7d32;">
             Don't have an account? Sign up
         </p>
+    </div>
+</div>
+
+<!-- Help Modal -->
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <h2>How to Use Golf Range Finder</h2>
+        
+        <h3 style="margin-top: 1.5rem; color: #2e7d32;">Getting Started</h3>
+        <p>Welcome to Golf Range Finder! This app helps you measure distances to holes on golf courses.</p>
+        
+        <h3 style="margin-top: 1.5rem; color: #2e7d32;">Using Existing Courses</h3>
+        <p>You don't need to login to use existing courses:</p>
+        <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Select a course from the dropdown at the top</li>
+            <li>Turn on GPS by clicking the toggle button</li>
+            <li>Select a hole from the bottom panel</li>
+            <li>The app will show your distance to the selected hole</li>
+        </ol>
+        
+        <h3 style="margin-top: 1.5rem; color: #2e7d32;">Creating New Courses</h3>
+        <p>To create your own courses:</p>
+        <ol style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Sign up for an account or log in</li>
+            <li>Navigate to the Dashboard using the button at the top</li>
+            <li>Click "Create New Course" and follow the instructions</li>
+            <li>Your courses will be available in the dropdown once approved</li>
+        </ol>
+        
+        <h3 style="margin-top: 1.5rem; color: #2e7d32;">GPS Troubleshooting</h3>
+        <p>If GPS isn't working:</p>
+        <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+            <li>Ensure location services are enabled on your device</li>
+            <li>Try refreshing the page</li>
+            <li>Make sure you're using a supported browser (Chrome, Safari, Firefox)</li>
+        </ul>
+        
+        <button type="button" class="btn" id="helpCloseBtn" style="margin-top: 1.5rem;">Close</button>
     </div>
 </div>
 
@@ -635,6 +722,9 @@
             initializeMap();
             createHoleGrid();
         }
+        
+        // Update initial distance message
+        updateDistanceMessage();
     }
 
     function updateUIForUser() {
@@ -705,7 +795,7 @@
                 option.textContent = course.name;
                 courseSelect.appendChild(option);
                 
-                // Create custom dropdown option
+            // Create custom dropdown option
                 const dropdownOption = document.createElement('div');
                 dropdownOption.className = 'dropdown-option';
                 dropdownOption.dataset.value = course.id;
@@ -765,6 +855,13 @@
         authForm.addEventListener('submit', handleAuth);
         document.getElementById('authCancel').addEventListener('click', closeModal);
         authSwitch.addEventListener('click', switchAuthMode);
+
+        // Help modal
+        document.getElementById('helpBtn').addEventListener('click', openHelpModal);
+        document.getElementById('helpCloseBtn').addEventListener('click', closeHelpModal);
+        document.getElementById('helpModal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('helpModal')) closeHelpModal();
+        });
 
         // Course selection (fallback)
         courseSelect.addEventListener('change', handleCourseChange);
@@ -884,16 +981,16 @@
         selectedContent.appendChild(nameSpan);
         selectedContent.appendChild(tagsContainer);
         
-        // Add the dropdown arrow
+        // Add the dropdown arrow (only one)
         const arrow = document.createElement('span');
         arrow.innerHTML = '▼';
         arrow.style.fontSize = '0.75rem';
         arrow.style.opacity = '0.7';
         arrow.style.marginLeft = '0.5rem';
-        selectedContent.appendChild(arrow);
         
         dropdownSelected.innerHTML = '';
         dropdownSelected.appendChild(selectedContent);
+        dropdownSelected.appendChild(arrow);
         
         // Update the hidden select
         courseSelect.value = courseId;
@@ -998,6 +1095,9 @@
             updateDistance();
         }
 
+        // Update distance message
+        updateDistanceMessage();
+
         // Auto-collapse the panel
         infoPanel.classList.add('collapsed');
     }
@@ -1061,16 +1161,36 @@
     }
 
     // GPS tracking functions
+    function openHelpModal() {
+        document.getElementById('helpModal').classList.add('active');
+    }
+
+    function closeHelpModal() {
+        document.getElementById('helpModal').classList.remove('active');
+    }
+
+    function updateDistanceMessage() {
+        const distanceMessage = document.getElementById('distanceMessage');
+        if (!isTracking) {
+            distanceMessage.textContent = 'Turn on GPS and select a hole to measure distance';
+        } else if (!selectedHole) {
+            distanceMessage.textContent = 'Select a hole to measure distance';
+        } else {
+            distanceMessage.textContent = 'GPS active - move around to update distance';
+        }
+    }
+
     function toggleTracking() {
         if (isTracking) {
             stopTracking();
-            gpsButton.textContent = 'GPS Off';
+            document.getElementById('gpsStatus').textContent = 'GPS Off';
             gpsButton.classList.remove('tracking');
         } else {
             startTracking();
-            gpsButton.textContent = 'GPS On';
+            document.getElementById('gpsStatus').textContent = 'GPS On';
             gpsButton.classList.add('tracking');
         }
+        updateDistanceMessage();
     }
 
     function startTracking() {
@@ -1110,6 +1230,7 @@
 
         document.getElementById('distanceDisplay').textContent = 'Select Hole';
         document.getElementById('accuracyDisplay').textContent = '';
+        updateDistanceMessage();
     }
 
     function updatePosition(position) {

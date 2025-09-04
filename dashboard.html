@@ -14,6 +14,29 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+        
+        /* Improved hole marker styling for course creation */
+        .hole-marker {
+            background: #2e7d32;
+            border: 3px solid white;
+            border-radius: 50%;
+            color: white;
+            width: 32px !important;
+            height: 32px !important;
+            line-height: 28px !important;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            cursor: grab;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .hole-marker:hover {
+            transform: scale(1.2);
+            background: #4caf50;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
 
         body {
             background: #f8f9fa;
@@ -412,6 +435,10 @@
                         </div>
                     </div>
                     <button type="button" class="btn btn-secondary" id="addHoleBtn">Add Hole at Map Center</button>
+                    <p style="margin-top: 0.75rem; font-size: 0.875rem; color: #666;">
+                        <strong>Tip:</strong> After adding a hole, you can drag its marker to adjust the position precisely.
+                        The markers are clearly visible with a white border and will show the hole number.
+                    </p>
                 </div>
 
                 <div class="form-group">
@@ -729,7 +756,7 @@
                 icon: L.divIcon({
                     className: 'hole-marker',
                     html: hole.number,
-                    iconSize: [24, 24]
+                    iconSize: [32, 32]
                 })
             }).addTo(courseMap);
 
@@ -739,7 +766,22 @@
                 hole.lon = pos.lng;
             });
 
+            // Add pulse effect to make it more visible
+            const pulseCircle = L.circle([hole.lat, hole.lon], {
+                color: '#2e7d32',
+                fillColor: '#4caf50',
+                fillOpacity: 0.3,
+                radius: 5,
+                weight: 2
+            }).addTo(courseMap);
+            
+            // Update the pulse circle position when marker is dragged
+            marker.on('drag', function(e) {
+                pulseCircle.setLatLng(e.target.getLatLng());
+            });
+            
             hole.marker = marker;
+            hole.pulseCircle = pulseCircle;
         }
 
         function updateHolesList() {
@@ -766,6 +808,9 @@
                 const hole = courseHoles[holeIndex];
                 if (hole.marker) {
                     courseMap.removeLayer(hole.marker);
+                }
+                if (hole.pulseCircle) {
+                    courseMap.removeLayer(hole.pulseCircle);
                 }
                 courseHoles.splice(holeIndex, 1);
                 updateHolesList();
