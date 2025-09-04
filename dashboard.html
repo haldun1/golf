@@ -849,7 +849,7 @@
 
         async function editCourse(courseId) {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('courses')
                     .select(`
                         *,
@@ -872,7 +872,7 @@
             }
 
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('courses')
                     .delete()
                     .eq('id', courseId);
@@ -889,7 +889,7 @@
 
         async function approveCourse(courseId) {
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('courses')
                     .update({ status: 'approved' })
                     .eq('id', courseId);
@@ -908,7 +908,7 @@
             }
 
             try {
-                const { error } = await supabase
+                const { error } = await supabaseClient
                     .from('courses')
                     .delete()
                     .eq('id', courseId);
@@ -922,7 +922,7 @@
         }
 
         async function logout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             window.location.href = 'index.html';
         }
 

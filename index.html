@@ -630,7 +630,7 @@
     }
 
     async function logout() {
-        await supabase.auth.signOut();
+        await supabaseClient.auth.signOut();
     }
 
     function handleCourseChange() {
