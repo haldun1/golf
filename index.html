@@ -6,6 +6,7 @@
     <title>Golf Range Finder</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -47,7 +48,13 @@
             margin: 0;
         }
 
-        .gps-toggle {
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .auth-btn, .gps-toggle {
             background: none;
             border: 2px solid rgba(255,255,255,0.3);
             color: white;
@@ -59,6 +66,12 @@
             align-items: center;
             gap: 0.5rem;
             transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .auth-btn:hover, .gps-toggle:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: rgba(255,255,255,0.5);
         }
 
         .gps-toggle::before {
@@ -68,11 +81,6 @@
             height: 8px;
             border-radius: 50%;
             background: #ff6e40;
-        }
-
-        .gps-toggle.tracking {
-            background: rgba(255,255,255,0.1);
-            border-color: rgba(255,255,255,0.5);
         }
 
         .gps-toggle.tracking::before {
@@ -231,6 +239,117 @@
             height: 16px !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 1.5rem;
+            color: #2e7d32;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .btn {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #45a049;
+        }
+
+        .btn-secondary {
+            background: #666;
+            margin-left: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: #555;
+        }
+
+        .error {
+            color: #d32f2f;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 2rem;
+        }
+
+        .welcome-message {
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        @media (max-width: 768px) {
+            .user-controls {
+                flex-wrap: wrap;
+            }
+            
+            .modal-content {
+                margin: 1rem;
+                width: calc(100% - 2rem);
+            }
+        }
     </style>
 </head>
 <body>
@@ -238,11 +357,24 @@
     <header class="header">
         <div class="header-content">
             <h1>Golf Range Finder</h1>
-            <button id="gpsButton" class="gps-toggle">GPS Off</button>
+            <div class="user-controls">
+                <div id="userInfo" class="welcome-message" style="display: none;">
+                    Welcome, <span id="userEmail"></span>!
+                </div>
+                <div id="authButtons">
+                    <button id="loginBtn" class="auth-btn">Login</button>
+                    <button id="signupBtn" class="auth-btn">Sign Up</button>
+                </div>
+                <div id="userButtons" style="display: none;">
+                    <a href="dashboard.html" class="auth-btn">Dashboard</a>
+                    <button id="logoutBtn" class="auth-btn">Logout</button>
+                </div>
+                <button id="gpsButton" class="gps-toggle">GPS Off</button>
+            </div>
         </div>
         <div class="course-selector">
             <select id="courseSelect">
-                <option value="">Select Course</option>
+                <option value="">Loading courses...</option>
             </select>
         </div>
     </header>
@@ -261,11 +393,40 @@
     </main>
 </div>
 
+<!-- Auth Modal -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <h2 id="authTitle">Login</h2>
+        <form id="authForm">
+            <div class="form-group">
+                <label for="email">Email:</label>
+                <input type="email" id="email" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" required>
+            </div>
+            <div class="error" id="authError"></div>
+            <button type="submit" class="btn" id="authSubmit">Login</button>
+            <button type="button" class="btn btn-secondary" id="authCancel">Cancel</button>
+        </form>
+        <p id="authSwitch" style="margin-top: 1rem; text-align: center; cursor: pointer; color: #2e7d32;">
+            Don't have an account? Sign up
+        </p>
+    </div>
+</div>
+
 <script>
-    // Golf course data will be loaded from courses.json
-    let COURSES = {};
+    // Replace with your Supabase URL and anon key
+    const SUPABASE_URL = 'https://ijyosisdbancyaanpdrg.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeW9zaXNkYmFuY3lhYW5wZHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5OTI0NTMsImV4cCI6MjA3MjU2ODQ1M30.YjZ3H1OynYfvbeABLut0tSS18mY3CLITTrUeA9wrpIg';
+    
+    // Initialize Supabase client
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // App state
+    let currentUser = null;
+    let courses = [];
     let currentCourse = null;
     let selectedHole = null;
     let isTracking = false;
@@ -274,43 +435,214 @@
     let playerMarker = null;
     let distanceLine = null;
     let holeMarkers = {};
+    let authMode = 'login'; // 'login' or 'signup'
 
-    // Load course data and initialize
-    async function initializeCourses() {
-        try {
-            const response = await fetch('courses.json');
-            if (!response.ok) {
-                throw new Error('Failed to load course data');
+    // DOM elements
+    const authModal = document.getElementById('authModal');
+    const authForm = document.getElementById('authForm');
+    const authTitle = document.getElementById('authTitle');
+    const authSubmit = document.getElementById('authSubmit');
+    const authSwitch = document.getElementById('authSwitch');
+    const authError = document.getElementById('authError');
+    const loginBtn = document.getElementById('loginBtn');
+    const signupBtn = document.getElementById('signupBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const authButtons = document.getElementById('authButtons');
+    const userButtons = document.getElementById('userButtons');
+    const userInfo = document.getElementById('userInfo');
+    const userEmail = document.getElementById('userEmail');
+    const courseSelect = document.getElementById('courseSelect');
+    const gpsButton = document.getElementById('gpsButton');
+    const infoPanel = document.getElementById('infoPanel');
+    const panelHandle = document.getElementById('panelHandle');
+
+    // Initialize app
+    async function initializeApp() {
+        // Check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            updateUIForUser();
+        }
+
+        // Listen for auth changes
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN') {
+                currentUser = session.user;
+                updateUIForUser();
+                closeModal();
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                updateUIForUser();
             }
-            COURSES = await response.json();
+        });
 
-            // Populate course selector
-            const courseSelect = document.getElementById('courseSelect');
-            Object.entries(COURSES).forEach(([id, course]) => {
+        // Load courses
+        await loadCourses();
+
+        // Set up event listeners
+        setupEventListeners();
+
+        // Initialize map with first course
+        if (courses.length > 0) {
+            currentCourse = courses[0];
+            courseSelect.value = currentCourse.id;
+            initializeMap();
+            createHoleGrid();
+        }
+    }
+
+    function updateUIForUser() {
+        if (currentUser) {
+            authButtons.style.display = 'none';
+            userButtons.style.display = 'flex';
+            userInfo.style.display = 'block';
+            userEmail.textContent = currentUser.email;
+        } else {
+            authButtons.style.display = 'flex';
+            userButtons.style.display = 'none';
+            userInfo.style.display = 'none';
+        }
+    }
+
+    async function loadCourses() {
+        try {
+            const { data, error } = await supabase
+                .from('courses')
+                .select(`
+                    *,
+                    holes (*)
+                `)
+                .eq('status', 'approved')
+                .order('name');
+
+            if (error) throw error;
+
+            courses = data.map(course => ({
+                id: course.id,
+                name: course.name,
+                center: [course.center_lat, course.center_lon],
+                zoom: course.zoom,
+                holes: course.holes.reduce((acc, hole) => {
+                    acc[hole.hole_number] = {
+                        lat: hole.lat,
+                        lon: hole.lon,
+                        par: hole.par
+                    };
+                    return acc;
+                }, {})
+            }));
+
+            // Update course selector
+            courseSelect.innerHTML = '<option value="">Select Course</option>';
+            courses.forEach(course => {
                 const option = document.createElement('option');
-                option.value = id;
+                option.value = course.id;
                 option.textContent = course.name;
                 courseSelect.appendChild(option);
             });
 
-            // Initialize with first course
-            courseSelect.value = 'candler-park';
-            courseSelect.dispatchEvent(new Event('change'));
         } catch (error) {
             console.error('Error loading courses:', error);
-            alert('Error loading course data. Please try again later.');
+            courseSelect.innerHTML = '<option value="">Error loading courses</option>';
         }
     }
 
-    // Course selection handler
-    courseSelect.addEventListener('change', () => {
+    function setupEventListeners() {
+        // Auth buttons
+        loginBtn.addEventListener('click', () => openAuthModal('login'));
+        signupBtn.addEventListener('click', () => openAuthModal('signup'));
+        logoutBtn.addEventListener('click', logout);
+
+        // Auth modal
+        authForm.addEventListener('submit', handleAuth);
+        document.getElementById('authCancel').addEventListener('click', closeModal);
+        authSwitch.addEventListener('click', switchAuthMode);
+
+        // Course selection
+        courseSelect.addEventListener('change', handleCourseChange);
+
+        // GPS tracking
+        gpsButton.addEventListener('click', toggleTracking);
+
+        // Panel handling
+        panelHandle.addEventListener('click', () => {
+            infoPanel.classList.toggle('collapsed');
+        });
+
+        // Close modal when clicking outside
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) closeModal();
+        });
+    }
+
+    function openAuthModal(mode) {
+        authMode = mode;
+        authTitle.textContent = mode === 'login' ? 'Login' : 'Sign Up';
+        authSubmit.textContent = mode === 'login' ? 'Login' : 'Sign Up';
+        authSwitch.textContent = mode === 'login' 
+            ? "Don't have an account? Sign up"
+            : "Already have an account? Login";
+        authError.textContent = '';
+        authModal.classList.add('active');
+    }
+
+    function closeModal() {
+        authModal.classList.remove('active');
+        authForm.reset();
+        authError.textContent = '';
+    }
+
+    function switchAuthMode() {
+        openAuthModal(authMode === 'login' ? 'signup' : 'login');
+    }
+
+    async function handleAuth(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
+        authError.textContent = '';
+        authSubmit.disabled = true;
+        authSubmit.textContent = 'Please wait...';
+
+        try {
+            let result;
+            if (authMode === 'login') {
+                result = await supabase.auth.signInWithPassword({ email, password });
+            } else {
+                result = await supabase.auth.signUp({ email, password });
+            }
+
+            if (result.error) throw result.error;
+
+            if (authMode === 'signup') {
+                authError.textContent = 'Please check your email to confirm your account.';
+                authError.style.color = '#2e7d32';
+            }
+        } catch (error) {
+            authError.textContent = error.message;
+        } finally {
+            authSubmit.disabled = false;
+            authSubmit.textContent = authMode === 'login' ? 'Login' : 'Sign Up';
+        }
+    }
+
+    async function logout() {
+        await supabase.auth.signOut();
+    }
+
+    function handleCourseChange() {
         const courseId = courseSelect.value;
         if (courseId) {
-            currentCourse = COURSES[courseId];
-            initializeMap();
-            createHoleGrid();
+            currentCourse = courses.find(c => c.id === courseId);
+            if (currentCourse) {
+                initializeMap();
+                createHoleGrid();
+            }
         }
-    });
+    }
 
     // Initialize map
     function initializeMap() {
@@ -323,6 +655,9 @@
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         }).addTo(map);
+
+        // Clear existing markers
+        holeMarkers = {};
 
         // Add hole markers
         Object.entries(currentCourse.holes).forEach(([number, position]) => {
@@ -346,9 +681,9 @@
             const button = document.createElement('button');
             button.className = 'hole-button' + (selectedHole === number ? ' active' : '');
             button.innerHTML = `
-                    <span class="hole-number">#${number}</span>
-                    <span class="hole-par">Par ${data.par}</span>
-                `;
+                <span class="hole-number">#${number}</span>
+                <span class="hole-par">Par ${data.par}</span>
+            `;
 
             button.addEventListener('click', () => selectHole(number));
             grid.appendChild(button);
@@ -376,7 +711,7 @@
             marker.setIcon(icon);
         });
 
-        // Ensure selected hole button is visible in the list
+        // Ensure selected hole button is visible
         const activeButton = document.querySelector('.hole-button.active');
         if (activeButton) {
             activeButton.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
@@ -387,7 +722,7 @@
             updateDistance();
         }
 
-        // Auto-collapse the panel after selection
+        // Auto-collapse the panel
         infoPanel.classList.add('collapsed');
     }
 
@@ -407,12 +742,10 @@
         return R * c;
     }
 
-    // Convert meters to yards
     function metersToYards(meters) {
         return Math.round(meters * 1.09361);
     }
 
-    // Update distance line on map
     function updateDistanceLine() {
         if (!selectedHole || !playerMarker) return;
 
@@ -434,7 +767,6 @@
         }).addTo(map);
     }
 
-    // Update distance display
     function updateDistance() {
         if (!selectedHole || !playerMarker) return;
 
@@ -452,10 +784,7 @@
         document.getElementById('distanceDisplay').textContent = `${yards} yards to hole ${selectedHole}`;
     }
 
-    // Handle GPS tracking
-    const gpsButton = document.getElementById('gpsButton');
-    gpsButton.addEventListener('click', toggleTracking);
-
+    // GPS tracking functions
     function toggleTracking() {
         if (isTracking) {
             stopTracking();
@@ -476,7 +805,7 @@
 
         watchId = navigator.geolocation.watchPosition(
             updatePosition,
-            handleError,
+            handleGPSError,
             {
                 enableHighAccuracy: true,
                 timeout: 5000,
@@ -494,7 +823,6 @@
         }
         isTracking = false;
 
-        // Clear player marker and distance line
         if (playerMarker) {
             map.removeLayer(playerMarker);
             playerMarker = null;
@@ -528,7 +856,7 @@
             `GPS Accuracy: ±${accuracyYards} yards`;
     }
 
-    function handleError(error) {
+    function handleGPSError(error) {
         if (error.code === 1) {
             alert('Please enable location services to use this app');
             stopTracking();
@@ -537,53 +865,8 @@
         }
     }
 
-    // Panel collapse functionality
-    const infoPanel = document.getElementById('infoPanel');
-    const panelHandle = document.getElementById('panelHandle');
-    let isDragging = false;
-    let startY = 0;
-    let startTransform = 0;
-
-    panelHandle.addEventListener('click', () => {
-        infoPanel.classList.toggle('collapsed');
-    });
-
-    // Touch handling for smooth dragging
-    panelHandle.addEventListener('touchstart', (e) => {
-        isDragging = true;
-        startY = e.touches[0].clientY;
-        startTransform = infoPanel.classList.contains('collapsed') ? 100 : 0;
-        infoPanel.style.transition = 'none';
-    });
-
-    document.addEventListener('touchmove', (e) => {
-        if (!isDragging) return;
-
-        const deltaY = e.touches[0].clientY - startY;
-        const percentMove = (deltaY / window.innerHeight) * 100;
-        const newTransform = Math.max(0, Math.min(100, startTransform + percentMove));
-
-        infoPanel.style.transform = `translateY(${newTransform}%)`;
-    });
-
-    document.addEventListener('touchend', () => {
-        if (!isDragging) return;
-
-        isDragging = false;
-        infoPanel.style.transition = 'transform 0.3s ease';
-
-        const currentTransform = parseInt(infoPanel.style.transform.match(/-?\d+/)[0]);
-        if (currentTransform > 50) {
-            infoPanel.classList.add('collapsed');
-            infoPanel.style.transform = '';
-        } else {
-            infoPanel.classList.remove('collapsed');
-            infoPanel.style.transform = '';
-        }
-    });
-
-    // Load initial course data
-    initializeCourses();
+    // Initialize the app
+    initializeApp();
 </script>
 </body>
 </html>
