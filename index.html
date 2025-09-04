@@ -459,7 +459,7 @@
     // Initialize app
     async function initializeApp() {
         // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session } } = await supabaseClient.auth.getSession();
         if (session) {
             currentUser = session.user;
             updateUIForUser();
