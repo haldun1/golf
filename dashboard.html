@@ -432,11 +432,11 @@
     </div>
 
     <script>
-        // Replace with your Supabase URL and anon key
         const SUPABASE_URL = 'https://ijyosisdbancyaanpdrg.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeW9zaXNkYmFuY3lhYW5wZHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5OTI0NTMsImV4cCI6MjA3MjU2ODQ1M30.YjZ3H1OynYfvbeABLut0tSS18mY3CLITTrUeA9wrpIg';
         
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // App state
         let currentUser = null;
@@ -513,43 +513,21 @@
         }
 
         async function loadPendingCourses() {
-    if (!isAdmin) return;
-
-    try {
-        // NEW: Call the RPC function instead of building a select query.
-        const { data: rawData, error } = await supabaseClient
-            .rpc('get_pending_courses_for_admin');
-
-        if (error) throw error;
-
-        // The RPC returns a single JSON object which is an array of courses.
-        // If no courses are found, it might be null, so we default to an empty array.
-        const courses = rawData || [];
-
-        displayPendingCourses(courses);
-
-    } catch (error) {
-        console.error('Error loading pending courses:', error);
-        document.getElementById('pendingCourses').innerHTML = 
-            '<div class="error">Error loading pending courses</div>';
-    }
-}
             if (!isAdmin) return;
 
             try {
-                const { data, error } = await supabaseClient
-                    .from('courses')
-                    .select(`
-                        *,
-                        holes (*),
-                        profiles!inner(email)
-                    `)
-                    .eq('status', 'pending')
-                    .order('created_at', { ascending: false });
+                // Call the RPC function instead of building a select query.
+                const { data: rawData, error } = await supabaseClient
+                    .rpc('get_pending_courses_for_admin');
 
                 if (error) throw error;
 
-                displayPendingCourses(data);
+                // The RPC returns a single JSON object which is an array of courses.
+                // If no courses are found, it might be null, so we default to an empty array.
+                const courses = rawData || [];
+
+                displayPendingCourses(courses);
+
             } catch (error) {
                 console.error('Error loading pending courses:', error);
                 document.getElementById('pendingCourses').innerHTML = 
@@ -560,7 +538,7 @@
         function displayUserCourses(courses) {
             const container = document.getElementById('userCourses');
             
-            if (courses.length === 0) {
+            if (!courses || courses.length === 0) {
                 container.innerHTML = '<div class="empty-state">You haven\'t created any courses yet</div>';
                 return;
             }
@@ -572,7 +550,7 @@
                             <div class="course-info">
                                 <h3>${course.name}</h3>
                                 <div class="course-meta">
-                                    ${course.holes.length} holes • Created ${new Date(course.created_at).toLocaleDateString()}
+                                    ${course.holes ? course.holes.length : 0} holes • Created ${new Date(course.created_at).toLocaleDateString()}
                                 </div>
                             </div>
                             <div style="display: flex; align-items: center; gap: 1rem;">
@@ -591,7 +569,7 @@
         function displayPendingCourses(courses) {
             const container = document.getElementById('pendingCourses');
             
-            if (courses.length === 0) {
+            if (!courses || courses.length === 0) {
                 container.innerHTML = '<div class="empty-state">No pending courses</div>';
                 return;
             }
@@ -603,7 +581,7 @@
                             <div class="course-info">
                                 <h3>${course.name}</h3>
                                 <div class="course-meta">
-                                    By ${course.profiles.email} • ${course.holes.length} holes
+                                    By ${course.profiles.email} • ${course.holes ? course.holes.length : 0} holes
                                 </div>
                             </div>
                             <div class="course-actions">
@@ -638,12 +616,12 @@
                 courseModalTitle.textContent = 'Edit Course';
                 document.getElementById('courseName').value = course.name;
                 courseCenter = [course.center_lat, course.center_lon];
-                courseHoles = course.holes.map(h => ({
+                courseHoles = course.holes ? course.holes.map(h => ({
                     number: h.hole_number,
                     lat: h.lat,
                     lon: h.lon,
                     par: h.par
-                }));
+                })) : [];
             } else {
                 courseModalTitle.textContent = 'Create New Course';
                 courseForm.reset();
@@ -709,7 +687,6 @@
             const holeNumber = parseInt(document.getElementById('currentHole').value);
             const par = parseInt(document.getElementById('holePar').value);
 
-            // Check if hole number already exists
             if (courseHoles.find(h => h.number === holeNumber)) {
                 courseError.textContent = `Hole ${holeNumber} already exists`;
                 return;
@@ -726,7 +703,6 @@
             addHoleMarker(hole);
             updateHolesList();
 
-            // Auto-increment hole number
             document.getElementById('currentHole').value = holeNumber + 1;
             courseError.textContent = '';
         }
@@ -758,7 +734,6 @@
                 return;
             }
 
-            // Sort holes by number
             const sortedHoles = [...courseHoles].sort((a, b) => a.number - b.number);
 
             container.innerHTML = sortedHoles.map(hole => `
@@ -782,120 +757,6 @@
         }
 
         async function saveCourse(e) {
-    e.preventDefault();
-    
-    const courseName = document.getElementById('courseName').value.trim();
-    
-    if (!courseName) {
-        courseError.textContent = 'Course name is required';
-        return;
-    }
-
-    if (courseHoles.length === 0) {
-        courseError.textContent = 'At least one hole is required';
-        return;
-    }
-
-    saveCourseBtn.disabled = true;
-    saveCourseBtn.textContent = 'Checking...';
-    courseError.textContent = '';
-
-    // NEW: Check if a course with the same name already exists
-    // Only check if it's a new course, or if the name has changed on an existing course
-    if (!editingCourse || (editingCourse && editingCourse.name !== courseName)) {
-        const { data: existingCourse, error: checkError } = await supabaseClient
-            .from('courses')
-            .select('name')
-            .eq('name', courseName)
-            .single();
-
-        // PGRST116 is the "no rows returned" error, which is the expected outcome if the name is available.
-        // We only want to stop if there's a different, real error.
-        if (checkError && checkError.code !== 'PGRST116') {
-            courseError.textContent = `Error checking course name: ${checkError.message}`;
-            saveCourseBtn.disabled = false;
-            saveCourseBtn.textContent = 'Save Course';
-            return;
-        }
-
-        if (existingCourse) {
-            courseError.textContent = 'A course with this name already exists.';
-            saveCourseBtn.disabled = false;
-            saveCourseBtn.textContent = 'Save Course';
-            return;
-        }
-    }
-
-    saveCourseBtn.textContent = 'Saving...';
-
-    try {
-        let courseData = {
-            name: courseName,
-            center_lat: courseCenter[0],
-            center_lon: courseCenter[1],
-            zoom: 16,
-            // status is handled by the database default ('pending')
-        };
-
-        let courseId;
-        
-        if (editingCourse) {
-            // Update existing course
-            // We remove status here so it isn't reset to pending on every edit
-            const { error } = await supabaseClient
-                .from('courses')
-                .update(courseData)
-                .eq('id', editingCourse.id);
-            
-            if (error) throw error;
-            courseId = editingCourse.id;
-
-            // Delete existing holes to replace them
-            await supabaseClient
-                .from('holes')
-                .delete()
-                .eq('course_id', courseId);
-        } else {
-            // Create new course
-            courseData.created_by = currentUser.id;
-            
-            const { data, error } = await supabaseClient
-                .from('courses')
-                .insert(courseData)
-                .select()
-                .single();
-            
-            if (error) throw error;
-            courseId = data.id;
-        }
-
-        // Insert holes
-        const holesData = courseHoles.map(hole => ({
-            course_id: courseId,
-            hole_number: hole.number,
-            lat: hole.lat,
-            lon: hole.lon,
-            par: hole.par
-        }));
-
-        const { error: holesError } = await supabaseClient
-            .from('holes')
-            .insert(holesData);
-
-        if (holesError) throw holesError;
-
-        closeCourseModal();
-        await loadUserCourses();
-        if (isAdmin) await loadPendingCourses();
-        
-    } catch (error) {
-        console.error('Error saving course:', error);
-        courseError.textContent = error.message;
-    } finally {
-        saveCourseBtn.disabled = false;
-        saveCourseBtn.textContent = 'Save Course';
-    }
-        }
             e.preventDefault();
             
             const courseName = document.getElementById('courseName').value.trim();
@@ -911,8 +772,32 @@
             }
 
             saveCourseBtn.disabled = true;
-            saveCourseBtn.textContent = 'Saving...';
+            saveCourseBtn.textContent = 'Checking...';
             courseError.textContent = '';
+
+            if (!editingCourse || (editingCourse && editingCourse.name !== courseName)) {
+                const { data: existingCourse, error: checkError } = await supabaseClient
+                    .from('courses')
+                    .select('name')
+                    .eq('name', courseName)
+                    .single();
+
+                if (checkError && checkError.code !== 'PGRST116') {
+                    courseError.textContent = `Error checking course name: ${checkError.message}`;
+                    saveCourseBtn.disabled = false;
+                    saveCourseBtn.textContent = 'Save Course';
+                    return;
+                }
+
+                if (existingCourse) {
+                    courseError.textContent = 'A course with this name already exists.';
+                    saveCourseBtn.disabled = false;
+                    saveCourseBtn.textContent = 'Save Course';
+                    return;
+                }
+            }
+
+            saveCourseBtn.textContent = 'Saving...';
 
             try {
                 let courseData = {
@@ -920,13 +805,11 @@
                     center_lat: courseCenter[0],
                     center_lon: courseCenter[1],
                     zoom: 16,
-                    status: 'pending'
                 };
 
                 let courseId;
                 
                 if (editingCourse) {
-                    // Update existing course
                     const { error } = await supabaseClient
                         .from('courses')
                         .update(courseData)
@@ -935,13 +818,11 @@
                     if (error) throw error;
                     courseId = editingCourse.id;
 
-                    // Delete existing holes
                     await supabaseClient
                         .from('holes')
                         .delete()
                         .eq('course_id', courseId);
                 } else {
-                    // Create new course
                     courseData.created_by = currentUser.id;
                     
                     const { data, error } = await supabaseClient
@@ -954,7 +835,6 @@
                     courseId = data.id;
                 }
 
-                // Insert holes
                 const holesData = courseHoles.map(hole => ({
                     course_id: courseId,
                     hole_number: hole.number,
@@ -1031,6 +911,8 @@
 
                 if (error) throw error;
                 await loadPendingCourses();
+                // Also refresh the user's course list in case they are approving their own course
+                await loadUserCourses();
             } catch (error) {
                 console.error('Error approving course:', error);
                 alert('Error approving course');
@@ -1038,18 +920,13 @@
         }
 
         async function rejectCourse(courseId) {
-            if (!confirm('Are you sure you want to reject this course?')) {
+            if (!confirm('Are you sure you want to reject this course? This will delete it.')) {
                 return;
             }
 
             try {
-                const { error } = await supabaseClient
-                    .from('courses')
-                    .delete()
-                    .eq('id', courseId);
-
-                if (error) throw error;
-                await loadPendingCourses();
+                // Rejecting a course is the same as deleting it
+                await deleteCourse(courseId);
             } catch (error) {
                 console.error('Error rejecting course:', error);
                 alert('Error rejecting course');
@@ -1061,8 +938,8 @@
             window.location.href = 'index.html';
         }
 
-        // Initialize dashboard (called after Supabase is ready)
-        initializeDashboard(); // Remove this line
+        // Initialize the dashboard
+        initializeDashboard();
     </script>
 </body>
 </html>
