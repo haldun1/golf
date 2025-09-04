@@ -518,15 +518,9 @@
             if (!isAdmin) return;
 
             try {
-                // This now fetches all courses, joining with the profiles table to get the creator's email
+                // CHANGED: Call the new RPC function instead of .from('courses').select()
                 const { data, error } = await supabaseClient
-                    .from('courses')
-                    .select(`
-                        *,
-                        holes (*),
-                        profiles (email)
-                    `)
-                    .order('created_at', { ascending: false });
+                    .rpc('get_all_courses_for_admin');
 
                 if (error) throw error;
 
@@ -575,7 +569,6 @@
         function displayAllCoursesForAdmin(courses) {
             const container = document.getElementById('allCourses');
             
-            // Filter out the admin's own courses to avoid duplication with the "Your Courses" panel
             const otherUserCourses = courses.filter(course => course.created_by !== currentUser.id);
 
             if (!otherUserCourses || otherUserCourses.length === 0) {
@@ -586,7 +579,6 @@
             container.innerHTML = `
                 <ul class="course-list">
                     ${otherUserCourses.map(course => {
-                        // Conditionally render buttons based on the course status
                         const actions = course.status === 'pending'
                             ? `
                                 <button class="btn" onclick="approveCourse('${course.id}')">Approve</button>
@@ -601,7 +593,8 @@
                                 <div class="course-info">
                                     <h3>${course.name}</h3>
                                     <div class="course-meta">
-                                        By ${course.profiles.email} • ${course.holes ? course.holes.length : 0} holes
+                                        {/* CHANGED: Use course.creator_email instead of course.profiles.email */}
+                                        By ${course.creator_email || 'Unknown User'} • ${course.holes ? course.holes.length : 0} holes
                                     </div>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 1rem;">
