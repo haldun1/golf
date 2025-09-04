@@ -865,8 +865,8 @@
         }
     }
 
-    // Initialize the app
-    initializeApp();
+    // Initialize the app (called after Supabase is ready)
+    // initializeApp(); // Remove this line since it's now called from initializeSupabase()
 </script>
 </body>
 </html>
