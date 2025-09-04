@@ -436,7 +436,7 @@
         const SUPABASE_URL = 'YOUR_SUPABASE_URL';
         const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
         
-        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // App state
         let currentUser = null;
@@ -461,7 +461,7 @@
         // Initialize dashboard
         async function initializeDashboard() {
             // Check authentication
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (!session) {
                 window.location.href = 'index.html';
                 return;
@@ -472,7 +472,7 @@
 
             // Check if user is admin
             try {
-                const { data: profile } = await supabase
+                const { data: profile } = await supabaseClient
                     .from('profiles')
                     .select('role')
                     .eq('id', currentUser.id)
@@ -493,7 +493,7 @@
 
         async function loadUserCourses() {
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('courses')
                     .select(`
                         *,
@@ -516,7 +516,7 @@
             if (!isAdmin) return;
 
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('courses')
                     .select(`
                         *,
@@ -792,7 +792,7 @@
                 
                 if (editingCourse) {
                     // Update existing course
-                    const { error } = await supabase
+                    const { error } = await supabaseClient
                         .from('courses')
                         .update(courseData)
                         .eq('id', editingCourse.id);
@@ -801,7 +801,7 @@
                     courseId = editingCourse.id;
 
                     // Delete existing holes
-                    await supabase
+                    await supabaseClient
                         .from('holes')
                         .delete()
                         .eq('course_id', courseId);
@@ -809,7 +809,7 @@
                     // Create new course
                     courseData.created_by = currentUser.id;
                     
-                    const { data, error } = await supabase
+                    const { data, error } = await supabaseClient
                         .from('courses')
                         .insert(courseData)
                         .select()
@@ -828,7 +828,7 @@
                     par: hole.par
                 }));
 
-                const { error: holesError } = await supabase
+                const { error: holesError } = await supabaseClient
                     .from('holes')
                     .insert(holesData);
 
@@ -927,7 +927,7 @@
         }
 
         // Initialize dashboard (called after Supabase is ready)
-        // initializeDashboard(); // Remove this line
+        initializeDashboard(); // Remove this line
     </script>
 </body>
 </html>

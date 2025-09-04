@@ -422,7 +422,7 @@
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeW9zaXNkYmFuY3lhYW5wZHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5OTI0NTMsImV4cCI6MjA3MjU2ODQ1M30.YjZ3H1OynYfvbeABLut0tSS18mY3CLITTrUeA9wrpIg';
     
     // Initialize Supabase client
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // App state
     let currentUser = null;
@@ -466,7 +466,7 @@
         }
 
         // Listen for auth changes
-        supabase.auth.onAuthStateChange((event, session) => {
+        supabaseClient.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN') {
                 currentUser = session.user;
                 updateUIForUser();
@@ -507,7 +507,7 @@
 
     async function loadCourses() {
         try {
-            const { data, error } = await supabase
+            const { data, error } = await supabaseClient
                 .from('courses')
                 .select(`
                     *,
@@ -610,9 +610,9 @@
         try {
             let result;
             if (authMode === 'login') {
-                result = await supabase.auth.signInWithPassword({ email, password });
+                result = await supabaseClient.auth.signInWithPassword({ email, password });
             } else {
-                result = await supabase.auth.signUp({ email, password });
+                result = await supabaseClient.auth.signUp({ email, password });
             }
 
             if (result.error) throw result.error;
@@ -866,7 +866,7 @@
     }
 
     // Initialize the app (called after Supabase is ready)
-    // initializeApp(); // Remove this line since it's now called from initializeSupabase()
+    initializeApp(); // Remove this line since it's now called from initializeSupabase()
 </script>
 </body>
 </html>
