@@ -507,21 +507,26 @@
 
     async function loadCourses() {
         try {
-        // The RLS policy now handles all the security, so we can
-        // just ask for all the courses this user is allowed to see.
-        const { data, error } = await supabaseClient
-            .from('courses')
-            .select(`
-                *,
-                holes (*)
-            `)
-            .order('name'); // No more .eq('status', 'approved')
+            // The RLS policy handles security, so this query fetches all courses
+            // the current user (admin or regular) is allowed to see.
+            // The '*' selector already includes the 'status' and 'created_by' fields we need.
+            const { data, error } = await supabaseClient
+                .from('courses')
+                .select(`
+                    *,
+                    holes (*)
+                `)
+                .order('name');
 
-        if (error) throw error;
+            if (error) throw error;
 
+            // Map the raw data to your app's 'courses' array structure.
+            // It's important to pass along status and created_by here.
             courses = data.map(course => ({
                 id: course.id,
                 name: course.name,
+                status: course.status, // <-- Add this
+                created_by: course.created_by, // <-- Add this
                 center: [course.center_lat, course.center_lon],
                 zoom: course.zoom,
                 holes: course.holes.reduce((acc, hole) => {
@@ -534,12 +539,27 @@
                 }, {})
             }));
 
-            // Update course selector
+            // Update the course selector dropdown with the new, descriptive labels.
             courseSelect.innerHTML = '<option value="">Select Course</option>';
             courses.forEach(course => {
                 const option = document.createElement('option');
                 option.value = course.id;
-                option.textContent = course.name;
+
+                let label = course.name;
+                
+                // If a course is pending, add a status indicator to its name.
+                if (course.status === 'pending') {
+                    // Check if the course belongs to the currently logged-in user.
+                    if (currentUser && course.created_by === currentUser.id) {
+                        label = `${course.name} (My Pending)`;
+                    } else {
+                        // If it's a pending course by another user, it will only be
+                        // visible to admins due to your RLS policies.
+                        label = `${course.name} (Pending Review)`;
+                    }
+                }
+                
+                option.textContent = label;
                 courseSelect.appendChild(option);
             });
 
