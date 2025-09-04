@@ -521,7 +521,7 @@
                     .select(`
                         *,
                         holes (*),
-                        profiles!courses_created_by_fkey (email)
+                        profiles!inner(email)
                     `)
                     .eq('status', 'pending')
                     .order('created_at', { ascending: false });
