@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Golf Range Finder</title>
+    <title>Simple Range Finder</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -348,52 +348,81 @@
             margin-bottom: 0.5rem;
         }
 
-        /* GPS Toggle Redesign */
-        .gps-section {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            margin-bottom: 1.5rem;
-            padding: 1rem;
-            background: var(--surface-variant);
-            border-radius: var(--radius-md);
-        }
+        /* GPS Toggle Redesign - More Prominent */
+.gps-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, var(--light-green) 0%, #f1f8e9 100%);
+    border: 2px solid var(--secondary-green);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.1);
+}
 
-        .gps-toggle {
-            position: relative;
-            width: 56px;
-            height: 32px;
-            border-radius: 16px;
-            background: var(--outline);
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
+.gps-info {
+    flex: 1;
+}
 
-        .gps-toggle.active {
-            background: var(--secondary-green);
-        }
+.gps-label {
+    font-weight: 700;
+    font-size: 1.125rem;
+    color: var(--primary-green);
+    margin-bottom: 0.25rem;
+}
 
-        .gps-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: white;
-            transition: transform 0.3s ease;
-            box-shadow: 0 2px 4px var(--shadow);
-        }
+.gps-description {
+    font-size: 0.875rem;
+    color: var(--dark-green);
+    opacity: 0.8;
+}
 
-        .gps-toggle.active .gps-slider {
-            transform: translateX(24px);
-        }
+.gps-toggle {
+    position: relative;
+    width: 64px;
+    height: 36px;
+    border-radius: 18px;
+    background: var(--outline);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
-        .gps-label {
-            font-weight: 600;
-            color: var(--on-surface);
-        }
+.gps-toggle.active {
+    background: var(--secondary-green);
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.4);
+}
+
+.gps-slider {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: white;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 6px var(--shadow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+}
+
+.gps-toggle.active .gps-slider {
+    transform: translateX(28px);
+}
+
+.gps-slider::before {
+    content: "📍";
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.gps-toggle.active .gps-slider::before {
+    opacity: 1;
+}
 
         /* Hole Grid Improvements */
         .holes-section h3 {
@@ -482,15 +511,16 @@
         }
 
         .player-marker {
-            background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%);
-            border: 3px solid white;
-            border-radius: 50%;
-            width: 20px !important;
-            height: 20px !important;
-            box-shadow: 0 3px 8px var(--shadow-strong);
-            animation: playerPulse 2s infinite;
-        }
-
+    background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%) !important;
+    border: 3px solid white !important;
+    border-radius: 50% !important;
+    width: 20px !important;
+    height: 20px !important;
+    box-shadow: 0 3px 8px var(--shadow-strong) !important;
+    animation: playerPulse 2s infinite;
+    position: relative !important;
+    z-index: 1000 !important;
+}
         @keyframes playerPulse {
             0%, 100% { 
                 transform: scale(1);
@@ -728,7 +758,7 @@
 <div class="app-container">
     <header class="header">
         <div class="header-top">
-            <div class="logo">Golf Range Finder</div>
+            <div class="logo">Simple Range Finder</div>
             <div class="header-actions">
                 <button class="icon-btn" id="helpBtn" aria-label="Help">?</button>
                 <button class="icon-btn" id="loginBtn" aria-label="Login">👤</button>
@@ -775,7 +805,10 @@
                 </div>
 
                 <div class="gps-section">
-                    <div class="gps-label">GPS Tracking</div>
+                    <div class="gps-info">
+                        <div class="gps-label">GPS Tracking</div>
+                        <div class="gps-description">Enable precise distance measurements</div>
+                    </div>
                     <div class="gps-toggle" id="gpsToggle">
                         <div class="gps-slider"></div>
                     </div>
@@ -852,50 +885,9 @@
 const SUPABASE_URL = 'https://ijyosisdbancyaanpdrg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeW9zaXNkYmFuY3lhYW5wZHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5OTI0NTMsImV4cCI6MjA3MjU2ODQ1M30.YjZ3H1OynYfvbeABLut0tSS18mY3CLITTrUeA9wrpIg';
 
-// Initialize Supabase (commented out for demo, uncomment for production)
+// Initialize Supabase
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Demo data for testing - replace with actual Supabase calls
-const demoData = {
-    courses: [
-        {
-            id: '1',
-            name: 'Augusta National Golf Club',
-            status: 'approved',
-            created_by: 'demo-user',
-            center: [33.5030, -82.0199],
-            zoom: 16,
-            holes: {
-                '1': { lat: 33.5035, lon: -82.0195, par: 4 },
-                '2': { lat: 33.5040, lon: -82.0200, par: 5 },
-                '3': { lat: 33.5025, lon: -82.0205, par: 4 },
-                '4': { lat: 33.5020, lon: -82.0190, par: 3 },
-                '5': { lat: 33.5045, lon: -82.0185, par: 4 },
-                '6': { lat: 33.5030, lon: -82.0175, par: 3 },
-                '7': { lat: 33.5050, lon: -82.0170, par: 4 },
-                '8': { lat: 33.5055, lon: -82.0180, par: 5 },
-                '9': { lat: 33.5060, lon: -82.0195, par: 4 }
-            }
-        },
-        {
-            id: '2',
-            name: 'Pebble Beach Golf Links',
-            status: 'approved',
-            created_by: 'other-user',
-            center: [36.5694, -121.9494],
-            zoom: 16,
-            holes: {
-                '1': { lat: 36.5700, lon: -121.9490, par: 4 },
-                '2': { lat: 36.5690, lon: -121.9500, par: 5 },
-                '3': { lat: 36.5685, lon: -121.9485, par: 4 },
-                '4': { lat: 36.5680, lon: -121.9495, par: 4 },
-                '5': { lat: 36.5675, lon: -121.9480, par: 3 },
-                '6': { lat: 36.5670, lon: -121.9490, par: 5 }
-            }
-        },
-    ]
-};
 
 // App state
 let currentUser = null;
@@ -938,6 +930,11 @@ async function initializeApp() {
 }
 
 function setupEventListeners() {
+    // Dashboard button
+    document.getElementById('dashboardBtn').addEventListener('click', () => {
+    window.location.href = 'dashboard.html';
+});
+    
     // Panel toggle
     panelHandle.addEventListener('click', togglePanel);
     
@@ -974,9 +971,6 @@ function setupEventListeners() {
 
 async function loadCourses() {
     try {
-        // For demo purposes, use local data
-        // In production, replace with:
-        
         const { data, error } = await supabaseClient
             .from('courses')
             .select(`
@@ -1004,8 +998,6 @@ async function loadCourses() {
             }, {})
         }));
         
-        // Demo data
-        // courses = demoData.courses;
         populateDropdown();
         
     } catch (error) {
@@ -1166,7 +1158,11 @@ function updatePosition(position) {
     const pos = [position.coords.latitude, position.coords.longitude];
 
     if (!playerMarker) {
-        const icon = L.divIcon({ className: 'player-marker' });
+        const icon = L.divIcon({ 
+            className: 'player-marker',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+        });
         playerMarker = L.marker(pos, { icon }).addTo(map);
     } else {
         playerMarker.setLatLng(pos);
@@ -1387,8 +1383,6 @@ async function handleAuth(e) {
     submitBtn.textContent = 'Please wait...';
     
     try {
-        // For production, replace with actual Supabase auth:
-        
         let result;
         if (authMode === 'login') {
             result = await supabaseClient.auth.signInWithPassword({ email, password });
@@ -1407,21 +1401,6 @@ async function handleAuth(e) {
             showSuccess('Successfully logged in!');
         }
         
-        
-        // Demo simulation
-        /* 
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (email && password.length >= 6) {
-            currentUser = { email, id: 'demo-user-' + Date.now() };
-            updateUserInterface();
-            closeAuthModal();
-            showSuccess(`Successfully ${authMode === 'login' ? 'logged in' : 'signed up'}!`);
-        } else {
-            throw new Error('Please enter a valid email and password (6+ characters)');
-        }
-        */
-        
     } catch (error) {
         showAuthError(error.message || 'Authentication failed');
     } finally {
@@ -1432,7 +1411,6 @@ async function handleAuth(e) {
 
 async function logout() {
     try {
-        // For production:
         await supabaseClient.auth.signOut();
         
         currentUser = null;
