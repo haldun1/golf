@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Simple Range Finder</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -16,19 +17,27 @@
 }
 
         :root {
-            --primary-green: #2e7d32;
-            --secondary-green: #4caf50;
-            --accent-orange: #ff6e40;
-            --light-green: #e8f5e8;
-            --dark-green: #1b5e20;
-            --background: #f8f9fa;
-            --surface: #ffffff;
-            --surface-variant: #f5f5f5;
-            --on-surface: #1c1b1f;
-            --on-surface-variant: #49454f;
-            --outline: #79747e;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --shadow-strong: rgba(0, 0, 0, 0.2);
+            /* Primary brand colours – modern teal/amber on dark background */
+            --primary-green: #0d9488;     /* More vibrant, better contrast */
+            --secondary-green: #14b8a6;   /* Brighter, more distinct from primary */
+            --accent-orange: #f59e0b;     /* Keep - works well */
+            --light-green: #5eead4;       /* Softer, better for subtle text */
+            --dark-green: #134e4a;        /* Deeper, better hierarchy */
+
+            /* Surfaces & text – dark mode baseline */
+            --background: #0f172a;        /* Slightly cooler, more modern */
+            --surface: #1e293b;           /* Better contrast with background */
+            --surface-variant: #334155;   /* More distinct layering */
+            --on-surface: #f1f5f9;        /* Slightly warmer white */
+            --on-surface-variant: #cbd5e1; /* Better readability */
+            --outline: #475569;           /* More subtle borders */
+            --off: #ef4444;               /* Proper red, not gray! */
+
+            /* Shadows */
+            --shadow: rgba(0,0,0,0.25);
+            --shadow-strong: rgba(0,0,0,0.5);
+
+            /* Radii */
             --radius-sm: 8px;
             --radius-md: 12px;
             --radius-lg: 16px;
@@ -91,9 +100,9 @@
         }
 
         .icon-btn {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             border: none;
-            color: white;
+            color: var(--on-surface);
             width: 44px;
             height: 44px;
             border-radius: var(--radius-xl);
@@ -101,9 +110,9 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.2rem;
+            font-size: 1.5rem;
             transition: all 0.2s ease;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(6px);
         }
 
         .icon-btn:hover, .icon-btn:focus {
@@ -218,7 +227,7 @@
 }
 
 .dropdown-option .course-meta {
-    color: var(--light-green);
+    color: var(--on-surface-variant);
     font-size: 0.875rem;
 }
 
@@ -229,7 +238,7 @@
 
         .course-tag {
             background: var(--secondary-green);
-            color: black;
+            color: var(--on-surface);
             padding: 0.25rem 0.5rem;
             border-radius: var(--radius-sm);
             font-size: 0.625rem;
@@ -239,7 +248,8 @@
         }
 
         .course-tag.pending {
-            background: #ff9800;
+            background: var(--accent-orange);
+            color: #000;
         }
 
         /* Map Container */
@@ -304,7 +314,7 @@
         .distance-display {
             font-size: 2rem;
             font-weight: 700;
-            color: var(--primary-green);
+            color: var(--light-green);
             margin-bottom: 0.5rem;
             line-height: 1.2;
         }
@@ -387,7 +397,7 @@
             width: 56px;
             height: 32px;
             border-radius: 16px;
-            background: red;
+            background: var(--off);
             cursor: pointer;
             transition: all 0.3s ease;
             display: flex;
@@ -705,18 +715,7 @@
         }
 
         /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --background: #121212;
-                --surface: #1e1e1e;
-                --surface-variant: #2a2a2a;
-                --on-surface: #e1e1e1;
-                --on-surface-variant: #c7c7c7;
-                --outline: #5f5f5f;
-                --shadow: rgba(0, 0, 0, 0.3);
-                --shadow-strong: rgba(0, 0, 0, 0.5);
-            }
-        }
+        /* We now use a unified dark theme by default; no separate light/dark switch needed */
 
         /* Accessibility improvements */
         @media (prefers-reduced-motion: reduce) {
@@ -767,7 +766,7 @@
             width: 100%;
             text-align: left;
             font-size: 1rem;
-            color: var(--on-surface);
+            color: var(--on-surface-variant);
             padding: 1rem 1.25rem;
             cursor: pointer;
             display: flex;
@@ -815,9 +814,9 @@
             text-align: center;
             font-weight: 600;
             padding: 0.5rem 1rem;
-            background: var(--surface-variant);
+            /*background: var(--surface-variant);*/
             color: var(--on-surface);
-            border-bottom: 1px solid var(--outline);
+            /*border-bottom: 1px solid var(--outline);*/
         }
 
         /* dropdown search */
@@ -848,7 +847,7 @@
     <header class="header">
         <div class="header-top">
             <div class="left-header">
-                <button class="icon-btn" id="menuBtn" aria-label="Menu">☰</button>
+            <button class="icon-btn material-symbols-outlined" id="menuBtn" aria-label="Menu">menu</button>
                 <div class="logo">Simple Range Finder</div>
             </div>
             <div class="header-actions"><!-- GPS toggle moved into bottom panel --></div>
@@ -880,10 +879,24 @@
             </div>
         </div>
         <nav class="side-menu-content">
-            <button class="side-menu-item" id="helpBtn" aria-label="Help">❓ Help</button>
-            <button class="side-menu-item" id="loginBtn" aria-label="Login">👤 Login</button>
-            <button class="side-menu-item" id="dashboardBtn" style="display: none;" aria-label="Dashboard">📊 Dashboard</button>
-            <button class="side-menu-item" id="logoutBtn" style="display: none;" aria-label="Logout">⎋ Logout</button>
+            <button class="side-menu-item" id="loginBtn" aria-label="Login">
+                <span class="material-symbols-outlined">account_circle</span>
+                Login
+            </button>
+            <button class="side-menu-item" id="logoutBtn" style="display: none;" aria-label="Logout">
+                <span class="material-symbols-outlined">logout</span>
+                Logout
+            </button>
+            <button class="side-menu-item" id="dashboardBtn" style="display: none;" aria-label="Dashboard">
+                <span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </button>
+
+            <button class="side-menu-item" id="helpBtn" aria-label="Help">
+                <span class="material-symbols-outlined">help</span>
+                Help
+            </button>
+
         </nav>
     </div>
     <div id="sideMenuOverlay" class="side-menu-overlay"></div>
