@@ -369,9 +369,9 @@
             </div>
 
             <div class="card" id="adminPanel" style="display: none;">
-                <h2>Admin Panel</h2>
-                <div id="pendingCourses">
-                    <div class="loading">Loading pending courses...</div>
+                <h2>Manage All Courses</h2>
+                <div id="allCourses">
+                    <div class="loading">Loading courses...</div>
                 </div>
             </div>
         </div>
@@ -481,7 +481,8 @@
                 isAdmin = profile?.role === 'admin';
                 if (isAdmin) {
                     document.getElementById('adminPanel').style.display = 'block';
-                    await loadPendingCourses();
+                    // CHANGED: Call the new function to load all courses
+                    await loadAllCoursesForAdmin();
                 }
             } catch (error) {
                 console.log('Profile not found or not admin:', error);
@@ -511,29 +512,33 @@
                     '<div class="error">Error loading your courses</div>';
             }
         }
-
-        async function loadPendingCourses() {
+        
+        // CHANGED: Renamed function and updated query to fetch ALL courses for the admin
+        async function loadAllCoursesForAdmin() {
             if (!isAdmin) return;
 
             try {
-                // Call the RPC function instead of building a select query.
-                const { data: rawData, error } = await supabaseClient
-                    .rpc('get_pending_courses_for_admin');
+                // This now fetches all courses, joining with the profiles table to get the creator's email
+                const { data, error } = await supabaseClient
+                    .from('courses')
+                    .select(`
+                        *,
+                        holes (*),
+                        profiles (email)
+                    `)
+                    .order('created_at', { ascending: false });
 
                 if (error) throw error;
 
-                // The RPC returns a single JSON object which is an array of courses.
-                // If no courses are found, it might be null, so we default to an empty array.
-                const courses = rawData || [];
-
-                displayPendingCourses(courses);
+                displayAllCoursesForAdmin(data);
 
             } catch (error) {
-                console.error('Error loading pending courses:', error);
-                document.getElementById('pendingCourses').innerHTML = 
-                    '<div class="error">Error loading pending courses</div>';
+                console.error('Error loading all courses for admin:', error);
+                document.getElementById('allCourses').innerHTML = 
+                    '<div class="error">Error loading courses</div>';
             }
         }
+
 
         function displayUserCourses(courses) {
             const container = document.getElementById('userCourses');
@@ -566,34 +571,53 @@
             `;
         }
 
-        function displayPendingCourses(courses) {
-            const container = document.getElementById('pendingCourses');
+        // CHANGED: Renamed function and updated logic to display all courses with conditional actions
+        function displayAllCoursesForAdmin(courses) {
+            const container = document.getElementById('allCourses');
             
-            if (!courses || courses.length === 0) {
-                container.innerHTML = '<div class="empty-state">No pending courses</div>';
+            // Filter out the admin's own courses to avoid duplication with the "Your Courses" panel
+            const otherUserCourses = courses.filter(course => course.created_by !== currentUser.id);
+
+            if (!otherUserCourses || otherUserCourses.length === 0) {
+                container.innerHTML = '<div class="empty-state">No other user courses to manage</div>';
                 return;
             }
 
             container.innerHTML = `
                 <ul class="course-list">
-                    ${courses.map(course => `
-                        <li class="course-item">
-                            <div class="course-info">
-                                <h3>${course.name}</h3>
-                                <div class="course-meta">
-                                    By ${course.profiles.email} • ${course.holes ? course.holes.length : 0} holes
-                                </div>
-                            </div>
-                            <div class="course-actions">
+                    ${otherUserCourses.map(course => {
+                        // Conditionally render buttons based on the course status
+                        const actions = course.status === 'pending'
+                            ? `
                                 <button class="btn" onclick="approveCourse('${course.id}')">Approve</button>
-                                <button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button>
                                 <button class="btn btn-danger" onclick="rejectCourse('${course.id}')">Reject</button>
-                            </div>
-                        </li>
-                    `).join('')}
+                            `
+                            : `
+                                <button class="btn btn-danger" onclick="deleteCourse('${course.id}')">Delete</button>
+                            `;
+
+                        return `
+                            <li class="course-item">
+                                <div class="course-info">
+                                    <h3>${course.name}</h3>
+                                    <div class="course-meta">
+                                        By ${course.profiles.email} • ${course.holes ? course.holes.length : 0} holes
+                                    </div>
+                                </div>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <span class="status-badge status-${course.status}">${course.status}</span>
+                                    <div class="course-actions">
+                                        <button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button>
+                                        ${actions}
+                                    </div>
+                                </div>
+                            </li>
+                        `
+                    }).join('')}
                 </ul>
             `;
         }
+
 
         function setupEventListeners() {
             logoutBtn.addEventListener('click', logout);
@@ -851,7 +875,8 @@
 
                 closeCourseModal();
                 await loadUserCourses();
-                if (isAdmin) await loadPendingCourses();
+                // CHANGED: Refresh the admin course list after saving
+                if (isAdmin) await loadAllCoursesForAdmin();
                 
             } catch (error) {
                 console.error('Error saving course:', error);
@@ -895,7 +920,8 @@
                 if (error) throw error;
 
                 await loadUserCourses();
-                if (isAdmin) await loadPendingCourses();
+                // CHANGED: Refresh the admin course list after deleting
+                if (isAdmin) await loadAllCoursesForAdmin();
             } catch (error) {
                 console.error('Error deleting course:', error);
                 alert('Error deleting course');
@@ -910,9 +936,8 @@
                     .eq('id', courseId);
 
                 if (error) throw error;
-                await loadPendingCourses();
-                // Also refresh the user's course list in case they are approving their own course
-                await loadUserCourses();
+                // CHANGED: Refresh the main admin list, which now shows all courses
+                await loadAllCoursesForAdmin();
             } catch (error) {
                 console.error('Error approving course:', error);
                 alert('Error approving course');
@@ -920,17 +945,8 @@
         }
 
         async function rejectCourse(courseId) {
-            if (!confirm('Are you sure you want to reject this course? This will delete it.')) {
-                return;
-            }
-
-            try {
-                // Rejecting a course is the same as deleting it
-                await deleteCourse(courseId);
-            } catch (error) {
-                console.error('Error rejecting course:', error);
-                alert('Error rejecting course');
-            }
+            // Rejecting a course is the same as deleting it
+            await deleteCourse(courseId);
         }
 
         async function logout() {
