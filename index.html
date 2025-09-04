@@ -91,6 +91,7 @@
             background: rgba(255,255,255,0.1);
             padding: 0.5rem;
             border-radius: 8px;
+            position: relative;
         }
 
         .course-selector select {
@@ -104,9 +105,135 @@
             cursor: pointer;
         }
 
+        .custom-dropdown {
+            position: relative;
+            width: 100%;
+        }
+
+        .dropdown-selected {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            font-size: 1rem;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 44px;
+        }
+
+        .dropdown-selected::after {
+            content: '▼';
+            font-size: 0.75rem;
+            opacity: 0.7;
+        }
+
+        .dropdown-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #2e7d32;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .dropdown-options.active {
+            display: block;
+        }
+
+        .dropdown-option {
+            padding: 0.75rem;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: background 0.2s;
+        }
+
+        .dropdown-option:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .dropdown-option:last-child {
+            border-bottom: none;
+        }
+
+        .course-name {
+            color: white;
+        }
+
+        .course-tags {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .course-tag {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .course-tag.my {
+            background: #4caf50;
+        }
+
+        .course-tag.pending {
+            background: #ff9800;
+        }
+
         .course-selector select option {
             background: #2e7d32;
             color: white;
+        }
+
+        .course-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .course-option:last-child {
+            border-bottom: none;
+        }
+
+        .course-tags {
+            display: flex;
+            gap: 0.25rem;
+            margin-left: auto;
+        }
+
+        .course-tag {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 0.125rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .course-tag.my {
+            background: #4caf50;
+        }
+
+        .course-tag.pending {
+            background: #ff9800;
         }
 
         .main-content {
@@ -373,7 +500,14 @@
             </div>
         </div>
         <div class="course-selector">
-            <select id="courseSelect">
+            <div class="custom-dropdown" id="customDropdown">
+                <div class="dropdown-selected" id="dropdownSelected">
+                    <span>Loading courses...</span>
+                </div>
+                <div class="dropdown-options" id="dropdownOptions">
+                </div>
+            </div>
+            <select id="courseSelect" style="display: none;">
                 <option value="">Loading courses...</option>
             </select>
         </div>
@@ -487,6 +621,17 @@
         if (courses.length > 0) {
             currentCourse = courses[0];
             courseSelect.value = currentCourse.id;
+            
+            // Also update the custom dropdown to show the first course
+            const tags = [];
+            if (currentUser && currentCourse.created_by === currentUser.id) {
+                tags.push('my');
+            }
+            if (currentCourse.status === 'pending') {
+                tags.push('pending');
+            }
+            selectCourse(currentCourse.id, currentCourse.name, tags);
+            
             initializeMap();
             createHoleGrid();
         }
@@ -539,28 +684,69 @@
                 }, {})
             }));
 
-            // Update the course selector dropdown with the new, descriptive labels.
+            // Update both the hidden select and custom dropdown
+            const dropdownSelected = document.getElementById('dropdownSelected');
+            const dropdownOptions = document.getElementById('dropdownOptions');
+            
+            // Clear existing options
             courseSelect.innerHTML = '<option value="">Select Course</option>';
+            dropdownOptions.innerHTML = '';
+            dropdownSelected.innerHTML = '<span>Select Course</span>';
+            
+            if (courses.length === 0) {
+                dropdownSelected.innerHTML = '<span>No courses available</span>';
+                return;
+            }
+            
             courses.forEach(course => {
+                // Add to hidden select for compatibility
                 const option = document.createElement('option');
                 option.value = course.id;
-
-                let label = course.name;
+                option.textContent = course.name;
+                courseSelect.appendChild(option);
                 
-                // If a course is pending, add a status indicator to its name.
-                if (course.status === 'pending') {
-                    // Check if the course belongs to the currently logged-in user.
-                    if (currentUser && course.created_by === currentUser.id) {
-                        label = `${course.name} (My Pending)`;
-                    } else {
-                        // If it's a pending course by another user, it will only be
-                        // visible to admins due to your RLS policies.
-                        label = `${course.name} (Pending Review)`;
-                    }
+                // Create custom dropdown option
+                const dropdownOption = document.createElement('div');
+                dropdownOption.className = 'dropdown-option';
+                dropdownOption.dataset.value = course.id;
+                
+                // Determine which tags to show
+                const tags = [];
+                
+                // Add "my" tag if the course belongs to the current user
+                if (currentUser && course.created_by === currentUser.id) {
+                    tags.push('my');
                 }
                 
-                option.textContent = label;
-                courseSelect.appendChild(option);
+                // Add "pending" tag if the course is pending
+                if (course.status === 'pending') {
+                    tags.push('pending');
+                }
+                
+                // Build the option content
+                const courseName = document.createElement('span');
+                courseName.className = 'course-name';
+                courseName.textContent = course.name;
+                
+                const tagsContainer = document.createElement('div');
+                tagsContainer.className = 'course-tags';
+                
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('span');
+                    tagElement.className = `course-tag ${tag}`;
+                    tagElement.textContent = tag.toUpperCase();
+                    tagsContainer.appendChild(tagElement);
+                });
+                
+                dropdownOption.appendChild(courseName);
+                dropdownOption.appendChild(tagsContainer);
+                
+                // Add click handler
+                dropdownOption.addEventListener('click', () => {
+                    selectCourse(course.id, course.name, tags);
+                });
+                
+                dropdownOptions.appendChild(dropdownOption);
             });
 
         } catch (error) {
@@ -580,8 +766,23 @@
         document.getElementById('authCancel').addEventListener('click', closeModal);
         authSwitch.addEventListener('click', switchAuthMode);
 
-        // Course selection
+        // Course selection (fallback)
         courseSelect.addEventListener('change', handleCourseChange);
+
+        // Custom dropdown handling
+        const dropdownSelected = document.getElementById('dropdownSelected');
+        const dropdownOptions = document.getElementById('dropdownOptions');
+        
+        dropdownSelected.addEventListener('click', () => {
+            dropdownOptions.classList.toggle('active');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-dropdown')) {
+                dropdownOptions.classList.remove('active');
+            }
+        });
 
         // GPS tracking
         gpsButton.addEventListener('click', toggleTracking);
@@ -652,6 +853,60 @@
 
     async function logout() {
         await supabaseClient.auth.signOut();
+    }
+
+    function selectCourse(courseId, courseName, tags) {
+        // Update the dropdown selected display
+        const dropdownSelected = document.getElementById('dropdownSelected');
+        const dropdownOptions = document.getElementById('dropdownOptions');
+        
+        // Build the selected display with tags
+        const selectedContent = document.createElement('div');
+        selectedContent.style.display = 'flex';
+        selectedContent.style.alignItems = 'center';
+        selectedContent.style.justifyContent = 'space-between';
+        selectedContent.style.width = '100%';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = courseName;
+        nameSpan.className = 'course-name';
+        
+        const tagsContainer = document.createElement('div');
+        tagsContainer.className = 'course-tags';
+        
+        tags.forEach(tag => {
+            const tagElement = document.createElement('span');
+            tagElement.className = `course-tag ${tag}`;
+            tagElement.textContent = tag.toUpperCase();
+            tagsContainer.appendChild(tagElement);
+        });
+        
+        selectedContent.appendChild(nameSpan);
+        selectedContent.appendChild(tagsContainer);
+        
+        // Add the dropdown arrow
+        const arrow = document.createElement('span');
+        arrow.innerHTML = '▼';
+        arrow.style.fontSize = '0.75rem';
+        arrow.style.opacity = '0.7';
+        arrow.style.marginLeft = '0.5rem';
+        selectedContent.appendChild(arrow);
+        
+        dropdownSelected.innerHTML = '';
+        dropdownSelected.appendChild(selectedContent);
+        
+        // Update the hidden select
+        courseSelect.value = courseId;
+        
+        // Close the dropdown
+        dropdownOptions.classList.remove('active');
+        
+        // Update the current course and initialize map
+        currentCourse = courses.find(c => c.id === courseId);
+        if (currentCourse) {
+            initializeMap();
+            createHoleGrid();
+        }
     }
 
     function handleCourseChange() {
