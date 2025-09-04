@@ -481,24 +481,13 @@
     background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%) !important;
     border: 3px solid white !important;
     border-radius: 50% !important;
-            width: 20px !important;
-            height: 20px !important;
+    /* dimensions not set here—circleMarker handles size via radius attribute */
     box-shadow: 0 3px 8px var(--shadow-strong) !important;
-            animation: playerPulse 2s infinite;
-    position: relative !important;
+    /* removed pulse animation to prevent visual offset */
     z-index: 1000 !important;
         }
         
-        @keyframes playerPulse {
-            0%, 100% { 
-                transform: scale(1);
-                box-shadow: 0 3px 8px var(--shadow-strong);
-            }
-            50% { 
-                transform: scale(1.2);
-                box-shadow: 0 4px 12px rgba(255, 110, 64, 0.4);
-            }
-        }
+/* Pulse animation removed */
 
         /* Modal Improvements */
         .modal {
@@ -882,7 +871,11 @@ const distanceMessage = document.getElementById('distanceMessage');
 
 // Initialize app
 async function initializeApp() {
+    // Restore session if it exists in localStorage
+    await restoreSession();
+
     setupEventListeners();
+    updateUserInterface();
     await loadCourses();
     
     if (courses.length > 0) {
@@ -1120,12 +1113,15 @@ function updatePosition(position) {
     const pos = [position.coords.latitude, position.coords.longitude];
 
     if (!playerMarker) {
-        const icon = L.divIcon({ 
-            className: 'player-marker',
-            iconSize: [20, 20],
-            iconAnchor: [10, 10]
-        });
-        playerMarker = L.marker(pos, { icon }).addTo(map);
+        // Use a circleMarker so the geographic point and the visible point are identical
+        playerMarker = L.circleMarker(pos, {
+            radius: 8,
+            weight: 2,
+            color: '#ffffff',          // white outline
+            fillColor: '#ff6e40',      // same accent-orange as line start
+            fillOpacity: 1,
+            className: 'player-marker' // keep existing class for pulse animation
+        }).addTo(map);
     } else {
         playerMarker.setLatLng(pos);
     }
@@ -1307,6 +1303,24 @@ function updateDistanceMessage() {
         distanceMessage.textContent = 'Tap a hole to measure distance';
     } else {
         distanceMessage.textContent = `to hole ${selectedHole}`;
+    }
+}
+
+// Session persistence and auth state listener
+async function restoreSession() {
+    try {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session && session.user) {
+            currentUser = session.user;
+        }
+    } catch (err) {
+        console.error('Error restoring session', err);
+    } finally {
+        // Listen to future auth changes so UI always reflects the right state
+        supabaseClient.auth.onAuthStateChange((_event, session) => {
+            currentUser = session?.user || null;
+            updateUserInterface();
+        });
     }
 }
 
