@@ -996,6 +996,7 @@ let isTracking = false;
 let watchId = null;
 let map = null;
 let playerMarker = null;
+let lastPlayerPos = null; // stores last known player position to preserve marker across map resets
 let distanceLine = null;
 let holeMarkers = {};
 let authMode = 'login';
@@ -1275,6 +1276,7 @@ function stopGPS() {
         map.removeLayer(distanceLine);
         distanceLine = null;
     }
+    lastPlayerPos = null;
 
     distanceDisplay.textContent = 'Select a Hole';
     document.getElementById('accuracyDisplay').style.display = 'none';
@@ -1283,6 +1285,8 @@ function stopGPS() {
 
 function updatePosition(position) {
     const pos = [position.coords.latitude, position.coords.longitude];
+    // remember last position so we can recreate marker after reloading map (e.g. when switching course)
+    lastPlayerPos = pos;
 
     if (!playerMarker) {
         // Use a circleMarker so the geographic point and the visible point are identical
@@ -1332,12 +1336,27 @@ function initializeMap() {
     
     if (map) {
         map.remove();
+        // discard existing leaflet layers/refs associated with previous map
+        playerMarker = null;
+        distanceLine = null;
     }
 
     map = L.map('map', {
         zoomControl: false,
         attributionControl: false
     }).setView(currentCourse.center, currentCourse.zoom);
+
+    // after recreating the map, if we have a stored player position and GPS tracking is on, recreate the marker
+    if (isTracking && lastPlayerPos) {
+        playerMarker = L.circleMarker(lastPlayerPos, {
+            radius: 8,
+            weight: 2,
+            color: '#ffffff',
+            fillColor: '#ff6e40',
+            fillOpacity: 1,
+            className: 'player-marker'
+        }).addTo(map);
+    }
 
     // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
