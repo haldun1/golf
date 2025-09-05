@@ -17,21 +17,21 @@
 }
 
         :root {
-            /* Primary brand colours – modern teal/amber on dark background */
-            --primary-green: #0d9488;     /* More vibrant, better contrast */
-            --secondary-green: #14b8a6;   /* Brighter, more distinct from primary */
-            --accent-orange: #f59e0b;     /* Keep - works well */
-            --light-green: #5eead4;       /* Softer, better for subtle text */
-            --dark-green: #134e4a;        /* Deeper, better hierarchy */
+            /* Primary brand colours */
+            --primary-green: #0d9488;
+            --secondary-green: #14b8a6;
+            --accent-orange: #f59e0b;
+            --light-green: #5eead4;
+            --dark-green: #134e4a;
 
-            /* Surfaces & text – dark mode baseline */
-            --background: #0f172a;        /* Slightly cooler, more modern */
-            --surface: #1e293b;           /* Better contrast with background */
-            --surface-variant: #334155;   /* More distinct layering */
-            --on-surface: #f1f5f9;        /* Slightly warmer white */
-            --on-surface-variant: #cbd5e1; /* Better readability */
-            --outline: #475569;           /* More subtle borders */
-            --off: #ef4444;               /* Proper red, not gray! */
+            /* Surfaces & text*/
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-variant: #334155;
+            --on-surface: #f1f5f9;
+            --on-surface-variant: #cbd5e1;
+            --outline: #475569;
+            --off: #ef4444;
 
             /* Shadows */
             --shadow: rgba(0,0,0,0.25);
@@ -67,7 +67,6 @@
             overflow: hidden;
         }
 
-        /* Header Improvements */
         .header {
             background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
             color: white;
@@ -94,7 +93,6 @@
         }
 
         .logo::before {
-            /*content: "⛳";*/
             font-size: 1.5rem;
         }
 
@@ -140,8 +138,8 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: var(--radius-md);
     backdrop-filter: blur(10px);
-    overflow: visible; /* Changed from hidden */
-    position: relative; /* Make sure this is set */
+    overflow: visible;
+    position: relative;
 }
 
         .dropdown-trigger {
@@ -257,7 +255,6 @@
             color: #000;
         }
 
-        /* Map Container */
         .main-content {
             flex: 1;
             position: relative;
@@ -270,7 +267,6 @@
             z-index: 1;
         }
 
-        /* Bottom Panel Redesign */
         .bottom-panel {
             position: absolute;
             bottom: 0;
@@ -319,7 +315,6 @@
             max-height: calc(75vh - 120px);
         }
 
-        /* Distance Display */
         .distance-section {
             text-align: center;
             margin-bottom: 1.5rem;
@@ -371,7 +366,6 @@
             color: var(--on-surface-variant);
         }
 
-        /* GPS Toggle Redesign */
         .gps-section {
             display: flex;
             align-items: center;
@@ -380,7 +374,6 @@
             border-radius: var(--radius-md);
         }
 
-        /* Inline version used inside distance-meta */
         .gps-section.inline {
             gap: 0.35rem;
             background: none;
@@ -393,7 +386,6 @@
         .gps-section.inline .gps-toggle {
             width: 48px;
             height: 28px;
-            /* remove scale to avoid mis-alignment */
             display: inline-block;
         }
         .gps-section.inline .gps-toggle .gps-slider {
@@ -416,7 +408,7 @@
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            padding: 2px; /* ensure slider centered vertically */
+            padding: 2px;
         }
 
         .gps-toggle.active {
@@ -444,7 +436,6 @@
             color: white;
         }
         
-        /* Hole Grid Improvements */
         .holes-section h3 {
             font-size: 1.125rem;
             font-weight: 600;
@@ -506,7 +497,6 @@
             font-weight: 500;
         }
 
-        /* Map Markers */
         .hole-marker {
             background: var(--primary-green);
             border: 3px solid white;
@@ -524,8 +514,8 @@
         }
 
         .hole-marker:hover {
-            transform: scale(1.1); /* A subtle scale on hover is fine */
-            z-index: 1000; /* Ensure it comes to the front on hover */
+            transform: scale(1.1);
+            z-index: 1000;
         }
 
         .hole-marker.active {
@@ -537,22 +527,17 @@
             height: 46px !important;
             margin-left: -5px;
             margin-top: -5px;
-            line-height: 40px !important; /* Re-center the text vertically */
+            line-height: 40px !important;
         }
 
         .player-marker {
     background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%) !important;
     border: 3px solid white !important;
     border-radius: 50% !important;
-    /* dimensions not set here—circleMarker handles size via radius attribute */
     box-shadow: 0 3px 8px var(--shadow-strong) !important;
-    /* removed pulse animation to prevent visual offset */
     z-index: 1000 !important;
         }
         
-/* Pulse animation removed */
-
-        /* Modal Improvements */
         .modal {
             display: none;
             position: fixed;
@@ -636,7 +621,6 @@
             font-weight: 600;
         }
 
-        /* Form Improvements */
         .form-group {
             margin-bottom: 1.5rem;
         }
@@ -714,7 +698,6 @@
             border-left: 4px solid #d32f2f;
         }
 
-        /* Loading States */
         .loading {
             display: flex;
             align-items: center;
@@ -738,7 +721,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Responsive Design */
         @media (max-width: 480px) {
             .header {
                 padding-left: 0.75rem;
@@ -764,10 +746,6 @@
             }
         }
 
-        /* Dark mode support */
-        /* We now use a unified dark theme by default; no separate light/dark switch needed */
-
-        /* Accessibility improvements */
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation-duration: 0.01ms !important;
@@ -776,7 +754,6 @@
             }
         }
 
-        /* Side Menu */
         .side-menu {
             position: fixed;
             top: 0;
@@ -864,23 +841,17 @@
             gap: 0.5rem;
         }
 
-        /* Touch improvements */
         .touchable {
             min-height: 44px;
             min-width: 44px;
         }
 
-        /* Course display bar */
         .course-display {
             text-align: center;
             font-weight: 600;
-            /*padding: 0.5rem 1rem;
-            /*background: var(--surface-variant);*/
             color: var(--on-surface);
-            /*border-bottom: 1px solid var(--outline);*/
         }
 
-        /* dropdown search */
         .dropdown-search {
             padding: 0.75rem 1rem 0.25rem 1rem;
         }
@@ -896,7 +867,6 @@
             border-color: var(--secondary-green);
         }
 
-        /* Focus improvements */
         .focus-visible {
             outline: 2px solid var(--secondary-green);
             outline-offset: 2px;
@@ -920,17 +890,14 @@
             </div>
         </div>
         
-        <!-- Static current-course label below header -->
         <div id="courseDisplay" class="course-display">Loading courses...</div>
     </header>
 
-    <!-- Side Menu -->
     <div id="sideMenu" class="side-menu">
         <div class="side-menu-header">
             <div id="sideMenuUser" class="side-menu-user" style="display: none;"></div>
             <button class="icon-btn" id="sideMenuClose" aria-label="Close">&times;</button>
         </div>
-        <!-- Course selector moved into menu -->
         <div class="course-selector" style="padding:0 1rem 1rem 1rem;">
             <div class="course-dropdown">
                 <div class="dropdown-search">
@@ -1070,7 +1037,6 @@
 </div>
 
 <script>
-// Replace with your actual Supabase configuration
 const SUPABASE_URL = 'https://ijyosisdbancyaanpdrg.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqeW9zaXNkYmFuY3lhYW5wZHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY5OTI0NTMsImV4cCI6MjA3MjU2ODQ1M30.YjZ3H1OynYfvbeABLut0tSS18mY3CLITTrUeA9wrpIg';
 
@@ -1087,7 +1053,7 @@ let isTracking = false;
 let watchId = null;
 let map = null;
 let playerMarker = null;
-let lastPlayerPos = null; // stores last known player position to preserve marker across map resets
+let lastPlayerPos = null;
 let distanceLine = null;
 let holeMarkers = {};
 let authMode = 'login';
@@ -1107,7 +1073,6 @@ const dropdownOptions = document.getElementById('dropdownOptions');
 const dropdownArrow = document.getElementById('dropdownArrow');
 const courseSearch = document.getElementById('courseSearch');
 const gpsToggle = document.getElementById('gpsToggle');
-// GPS status indicator now combined with toggle – no separate dot/text
 const holeGrid = document.getElementById('holeGrid');
 const distanceDisplay = document.getElementById('distanceDisplay');
 const distanceMessage = document.getElementById('distanceMessage');
@@ -1385,18 +1350,16 @@ function stopGPS() {
 
 function updatePosition(position) {
     const pos = [position.coords.latitude, position.coords.longitude];
-    // remember last position so we can recreate marker after reloading map (e.g. when switching course)
     lastPlayerPos = pos;
 
     if (!playerMarker) {
-        // Use a circleMarker so the geographic point and the visible point are identical
         playerMarker = L.circleMarker(pos, {
             radius: 8,
             weight: 2,
-            color: '#ffffff',          // white outline
-            fillColor: '#ff6e40',      // same accent-orange as line start
+            color: '#ffffff',
+            fillColor: '#ff6e40',
             fillOpacity: 1,
-            className: 'player-marker' // keep existing class for pulse animation
+            className: 'player-marker'
         }).addTo(map);
     } else {
         playerMarker.setLatLng(pos);
@@ -1436,7 +1399,6 @@ function initializeMap() {
     
     if (map) {
         map.remove();
-        // discard existing leaflet layers/refs associated with previous map
         playerMarker = null;
         distanceLine = null;
     }
@@ -1449,14 +1411,13 @@ function initializeMap() {
     const holeCoords = Object.values(currentCourse.holes).map(h => [h.lat, h.lon]);
 
     if (holeCoords.length > 0) {
-        map.fitBounds(holeCoords, { padding: [50, 50] }); // Adds 50px of padding
+        map.fitBounds(holeCoords, { padding: [50, 50] });
     } else {
         map.setView(currentCourse.center, currentCourse.zoom);
     }
 
     L.control.zoom({ position: 'topleft' }).addTo(map);
 
-    // after recreating the map, if we have a stored player position and GPS tracking is on, recreate the marker
     if (isTracking && lastPlayerPos) {
         playerMarker = L.circleMarker(lastPlayerPos, {
             radius: 8,
@@ -1468,7 +1429,6 @@ function initializeMap() {
         }).addTo(map);
     }
 
-    // Add zoom control to bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -1477,10 +1437,8 @@ function initializeMap() {
             maxZoom: 22
         }).addTo(map);
 
-    // Clear existing markers
     holeMarkers = {};
 
-    // Add hole markers
     Object.entries(currentCourse.holes).forEach(([number, hole]) => {
             const icon = L.divIcon({
                 className: 'hole-marker',
@@ -1508,7 +1466,6 @@ function createHoleGrid() {
         </div>
     `).join('');
 
-    // Add click handlers
     holeGrid.querySelectorAll('.hole-card').forEach(card => {
         card.addEventListener('click', () => {
             const holeNumber = card.dataset.hole;
@@ -1520,12 +1477,10 @@ function createHoleGrid() {
 function selectHole(holeNumber) {
             selectedHole = holeNumber;
 
-            // Update hole grid
             holeGrid.querySelectorAll('.hole-card').forEach(card => {
                 card.classList.toggle('active', card.dataset.hole === holeNumber);
             });
 
-            // Update map markers by toggling the 'active' class directly on the elements
             Object.entries(holeMarkers).forEach(([num, marker]) => {
                 const el = marker.getElement();
                 if (el) { // Check that the marker element exists in the DOM
@@ -1540,7 +1495,6 @@ function selectHole(holeNumber) {
 
             updateDistanceMessage();
             
-            // Collapse panel after selection on mobile
             if (window.innerWidth <= 768) {
                 bottomPanel.classList.add('collapsed');
             }
@@ -1705,14 +1659,13 @@ function updateUserInterface() {
             const loginBtn = document.getElementById('loginBtn');
             const dashboardBtn = document.getElementById('dashboardBtn');
             const logoutBtn = document.getElementById('logoutBtn');
-            const sideMenuUser = document.getElementById('sideMenuUser'); // Add this
+            const sideMenuUser = document.getElementById('sideMenuUser');
             
             if (currentUser) {
                 loginBtn.style.display = 'none';
                 dashboardBtn.style.display = 'flex';
                 logoutBtn.style.display = 'flex';
                 
-                // Add these two lines
                 sideMenuUser.textContent = currentUser.email;
                 sideMenuUser.style.display = 'block';
             } else {
@@ -1720,11 +1673,9 @@ function updateUserInterface() {
                 dashboardBtn.style.display = 'none';
                 logoutBtn.style.display = 'none';
                 
-                // Add this line
                 sideMenuUser.style.display = 'none';
             }
             
-            // Refresh courses to show user-specific data
             populateDropdown();
         }
 
@@ -1796,11 +1747,9 @@ function openSideMenu() {
 function closeSideMenu() {
     sideMenu.classList.remove('active');
     sideMenuOverlay.classList.remove('active');
-    // Close course dropdown if it is open
     closeDropdown();
 }
 
-// Add CSS animations for toasts
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideInDown {
