@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿meta<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -14,10 +14,38 @@
             box-sizing: border-box;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+
+        :root {
+            /* Primary brand colours – modern teal/amber on dark background */
+            --primary-green: #0d9488;
+            --secondary-green: #14b8a6;
+            --accent-orange: #f59e0b;
+            --light-green: #5eead4;
+            --dark-green: #134e4a;
+
+            /* Surfaces & text – dark mode baseline */
+            --background: #0f172a;
+            --surface: #1e293b;
+            --surface-variant: #334155;
+            --on-surface: #f1f5f9;
+            --on-surface-variant: #cbd5e1;
+            --outline: #475569;
+            --off: #ef4444;
+
+            /* Shadows */
+            --shadow: rgba(0,0,0,0.25);
+            --shadow-strong: rgba(0,0,0,0.5);
+
+            /* Radii */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+        }
         
         /* Improved hole marker styling for course creation */
         .hole-marker {
-            background: #2e7d32;
+            background: var(--primary-green);
             border: 3px solid white;
             border-radius: 50%;
             color: white;
@@ -34,22 +62,22 @@
         
         .hole-marker:hover {
             transform: scale(1.2);
-            background: #4caf50;
+            background: var(--secondary-green);
             box-shadow: 0 4px 8px rgba(0,0,0,0.4);
         }
 
         body {
-            background: #f8f9fa;
-            color: #333;
+            background: var(--background);
+            color: var(--on-surface);
             line-height: 1.6;
             min-height: 100vh;
         }
 
         .header {
-            background: #2e7d32;
+            background: linear-gradient(135deg, var(--primary-green) 0%, var(--dark-green) 100%);
             color: white;
             padding: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         .header-content {
@@ -98,21 +126,21 @@
         }
 
         .card {
-            background: white;
+            background: var(--surface);
             border-radius: 12px;
             padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 8px var(--shadow);
         }
 
         .card h2 {
             margin-bottom: 1rem;
-            color: #2e7d32;
+            color: var(--on-surface);
             border-bottom: 2px solid #e8f5e8;
             padding-bottom: 0.5rem;
         }
 
         .btn {
-            background: #4caf50;
+            background: var(--secondary-green);
             color: white;
             border: none;
             padding: 0.75rem 1.5rem;
@@ -126,7 +154,7 @@
         }
 
         .btn:hover {
-            background: #45a049;
+            background: var(--primary-green);
         }
 
         .btn-danger {
@@ -138,11 +166,12 @@
         }
 
         .btn-secondary {
-            background: #666;
+            background: var(--surface-variant);
+            color: var(--on-surface);
         }
 
         .btn-secondary:hover {
-            background: #555;
+            background: var(--outline);
         }
 
         .course-list {
@@ -158,20 +187,21 @@
             border-radius: 8px;
             margin-bottom: 0.5rem;
             transition: background 0.2s;
+            background-color: var(--surface-variant);
         }
 
         .course-item:hover {
-            background: #f5f5f5;
+            background: var(--surface);
         }
 
         .course-info h3 {
             margin: 0;
-            color: #2e7d32;
+            color: var(--on-surface);
         }
 
         .course-meta {
             font-size: 0.875rem;
-            color: #666;
+            color: var(--on-surface-variant);
             margin-top: 0.25rem;
         }
 
@@ -323,7 +353,7 @@
         }
 
         .welcome-message {
-            background: white;
+            background: var(--surface-variant);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 2rem;

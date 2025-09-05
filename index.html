@@ -89,7 +89,7 @@
         }
 
         .logo::before {
-            content: "⛳";
+            /*content: "⛳";*/
             font-size: 1.5rem;
         }
 
@@ -183,7 +183,7 @@
     top: calc(100% + 4px);
     left: 0;
     right: 0;
-    background: var(--primary-green);
+    background: var(--surface-variant);
     border: 1px solid #ccc;
     border-radius: var(--radius-md);
     box-shadow: 0 8px 24px rgba(235, 227, 227, 0.2);
@@ -208,7 +208,7 @@
     justify-content: space-between;
     padding: 1rem;
     cursor: pointer;
-    border-bottom: 1px solid var(--secondary-green);
+    border-bottom: 1px solid var(--outline);
     transition: background 0.2s ease;
     color: white;
 }
@@ -218,7 +218,7 @@
 }
 
 .dropdown-option:hover {
-    background: var(--secondary-green);
+    background: var(--surface);
 }
 
 .dropdown-option .course-name {
@@ -813,7 +813,7 @@
         .course-display {
             text-align: center;
             font-weight: 600;
-            padding: 0.5rem 1rem;
+            /*padding: 0.5rem 1rem;
             /*background: var(--surface-variant);*/
             color: var(--on-surface);
             /*border-bottom: 1px solid var(--outline);*/
@@ -848,7 +848,7 @@
         <div class="header-top">
             <div class="left-header">
             <button class="icon-btn material-symbols-outlined" id="menuBtn" aria-label="Menu">menu</button>
-                <div class="logo">Simple Range Finder</div>
+                <div class="logo"><span class="material-symbols-outlined">golf_course</span> Simple Range Finder</div>
             </div>
             <div class="header-actions"><!-- GPS toggle moved into bottom panel --></div>
         </div>
