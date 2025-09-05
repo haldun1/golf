@@ -61,6 +61,11 @@
             overscroll-behavior: none;
         }
 
+        a {
+            text-decoration: none;
+            color: white;
+        }
+
         .app-container {
             height: 100vh;
             height: 100dvh;
@@ -1095,40 +1100,40 @@
 <!-- Help Modal -->
 <div id="helpModal" class="modal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h2>How to Use</h2>
-        </div>
         <div class="modal-body">
             <div class="help-section">
-                <h3>🆓 Completely Free</h3>
-                <p>Simple Range Finder is completely free! <a href="#" onclick="openKofiModal(); return false;">🍵</a></p>
+                <p>ℹ️ Free app. No data tracking.</p>
             </div>
             <div class="help-section">
                 <h3>⚡ Quick Start</h3>
                 <ol>
                     <li><strong>Choose a course:</strong> Tap the menu (☰) and pick one.</li>
-                    <li><strong>Enable GPS:</strong> Tap the GPS toggle. Allow the browser to use your location.</li>
-                    <li><strong>Select a hole:</strong> Tap a green marker on the map or in the bottom panel. The yardage appears and updates as you walk.</li>
+                    <li><strong>Enable GPS:</strong> Tap GPS on. (Data is not tracked)</li>
+                    <li><strong>Select a hole:</strong> Tap a hole number. Distance updates as you walk.</li>
                 </ol>
             </div>
             <div class="help-section">
                 <h3>🎛️ Controls & Tips</h3>
                 <ul>
-                    <li><strong>Map:</strong> Pinch-zoom and pan just like any other map.</li>
-                    <li><strong>Accuracy:</strong> A ± value shows how precise the current GPS reading is.</li>
-                    <li><strong>GPS off?</strong> Toggle it anytime to stop tracking and save battery.</li>
+                    <li><strong>Map:</strong> Pinch to zoom, drag to pan.</li>
+                    <li><strong>Accuracy:</strong> ± shows GPS accuracy.</li>
+                    <li><strong>GPS:</strong> Toggle off stop tracking and save battery.</li>
+                    <li><strong>Units:</strong> Switch yards/meters in the menu.</li>
                 </ul>
             </div>
             <div class="help-section">
                 <h3>➕ Create Your Own Courses</h3>
-                <p>Log in or sign up from the menu to open your Dashboard. There you can create new courses or edit existing ones.</p>
-                <p>When you save a new course, it will be available to you immediately, and to everyone else once the admin approves it.</p>
+                <p>Log in or sign up to access Course Dashboard, where you can create and edit courses.</p>
+                <p>Your new courses are visible to you immediately, and to others after admin approval.</p>
             </div>
             <div class="help-section">
                 <h3>📏 Measurement Tool</h3>
-                <p>After selecting a hole, tap the ruler icon (<span class="material-symbols-outlined" style="font-size: 1em; vertical-align: -0.1em;">straighten</span>) on the map to drop a movable pin. Drag it to measure distances from any point.</p>
+                <p>Select a hole → Tap the ruler icon (<span class="material-symbols-outlined" style="font-size: 1em; vertical-align: -0.1em;">straighten</span>) on the map → Drag the orange dot to measure distance to you and the hole.</p>
             </div>
             <button type="button" class="btn" id="helpClose" style="width: 100%; margin-top: 1rem;">Got it!</button>
+            <div style="margin-top: 20px;">
+                <p style="text-align: center; color: var(--on-surface-variant); font-size: 0.875rem; margin-bottom: 0.75rem;"><a href="#" onclick="openKofiModal(); return false;">🍵 Buy me a coffee</a></p>
+            </div>
         </div>
     </div>
 </div>
@@ -1223,11 +1228,8 @@ async function initializeApp() {
     updateUserInterface();
     await loadCourses();
     
-    if (courses.length > 0) {
-        selectCourse(courses[0]);
-        initializeMap();
-        createHoleGrid();
-    }
+    // Initialize the map without selecting a course first
+    initializeMap();
 }
 
 function setupEventListeners() {
@@ -1365,11 +1367,6 @@ function populateDropdown() {
         
         dropdownOptions.appendChild(option);
     });
-    
-    // Set first course as default
-    if (courses.length > 0 && !currentCourse) {
-        selectCourse(courses[0]);
-    }
 }
 
 function selectCourse(course) {
@@ -1585,8 +1582,6 @@ function handleUnitChange(e) {
 }
 
 function initializeMap() {
-    if (!currentCourse) return;
-    
     if (map) {
         map.remove();
         playerMarker = null;
@@ -1598,63 +1593,71 @@ function initializeMap() {
         zoomControl: false,
         attributionControl: false
     });
-
-    const holeCoords = Object.values(currentCourse.holes).map(h => [h.lat, h.lon]);
-
-    if (holeCoords.length > 0) {
-        map.fitBounds(holeCoords, { padding: [50, 50] });
-    } else {
-        map.setView(currentCourse.center, currentCourse.zoom);
-    }
-
-    L.control.zoom({ position: 'topleft' }).addTo(map);
-
-    if (isTracking && lastPlayerPos) {
-        playerMarker = L.circleMarker(lastPlayerPos, {
-            radius: 8,
-            weight: 2,
-            color: '#ffffff',
-            fillColor: '#ff6e40',
-            fillOpacity: 1,
-            className: 'player-marker'
-        }).addTo(map);
-    }
-
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
-
+    
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles © Esri',
             maxNativeZoom: 19,
             maxZoom: 22
         }).addTo(map);
 
-    holeMarkers = {};
+    L.control.zoom({ position: 'topleft' }).addTo(map);
 
-    Object.entries(currentCourse.holes).forEach(([number, hole]) => {
-            const icon = L.divIcon({
-                className: 'hole-marker',
-                html: number,
-                iconSize: [36, 36],
-                iconAnchor: [18, 18]
-            });
+    if (currentCourse) {
+        // This block runs when a course is selected
+        const holeCoords = Object.values(currentCourse.holes).map(h => [h.lat, h.lon]);
 
-        holeMarkers[number] = L.marker([hole.lat, hole.lon], { icon })
-            .on('click', () => selectHole(number))
-            .addTo(map);
-    });
+        if (holeCoords.length > 0) {
+            map.fitBounds(holeCoords, { padding: [50, 50] });
+        } else {
+            map.setView(currentCourse.center, currentCourse.zoom);
+        }
 
-    // Initialize measurement control
-    L.Control.Measure = L.Control.extend({
-        onAdd: function(map) {
-            const container = L.DomUtil.create('div', 'leaflet-bar measurement-control');
-            container.innerHTML = '<a href="#" title="Toggle Measurement Tool">straighten</a>';
-            L.DomEvent.on(container, 'click', L.DomEvent.stop)
-                      .on(container, 'click', toggleMeasurement);
-            return container;
-        },
-        onRemove: function(map) {}
-    });
-    measureControl = new L.Control.Measure({ position: 'topright' }).addTo(map);
+        if (isTracking && lastPlayerPos) {
+            playerMarker = L.circleMarker(lastPlayerPos, {
+                radius: 8,
+                weight: 2,
+                color: '#ffffff',
+                fillColor: '#ff6e40',
+                fillOpacity: 1,
+                className: 'player-marker'
+            }).addTo(map);
+        }
+
+        holeMarkers = {};
+        Object.entries(currentCourse.holes).forEach(([number, hole]) => {
+                const icon = L.divIcon({
+                    className: 'hole-marker',
+                    html: number,
+                    iconSize: [36, 36],
+                    iconAnchor: [18, 18]
+                });
+
+            holeMarkers[number] = L.marker([hole.lat, hole.lon], { icon })
+                .on('click', () => selectHole(number))
+                .addTo(map);
+        });
+
+        L.Control.Measure = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div', 'leaflet-bar measurement-control');
+                container.innerHTML = '<a href="#" title="Toggle Measurement Tool">straighten</a>';
+                L.DomEvent.on(container, 'click', L.DomEvent.stop)
+                          .on(container, 'click', toggleMeasurement);
+                return container;
+            },
+            onRemove: function(map) {}
+        });
+        measureControl = new L.Control.Measure({ position: 'topright' }).addTo(map);
+        
+    } else {
+        // This block runs on startup when no course is selected
+        map.setView([33.7490, -84.3880], 5); // Default view (Atlanta)
+        updateDropdownDisplay('Select a Course', 'Use the menu to begin');
+        
+        courseDisplay.innerHTML = 'Use the (&#9776;) menu to select a course';
+
+        holeGrid.innerHTML = '<div class="loading" style="color: var(--on-surface-variant);">Select a course to see holes.</div>';
+    }
 }
 
 function createHoleGrid() {

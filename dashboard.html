@@ -216,10 +216,33 @@
             box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2);
         }
 
+        .par-selector {
+            background: var(--surface-variant);
+            color: var(--on-surface);
+            border: 1px solid var(--outline);
+            border-radius: var(--radius-sm);
+            padding: 0.25rem 0.5rem;
+            margin-right: 0.75rem;
+            max-width: 100px;
+        }
+
         .map-container { height: 400px; border-radius: var(--radius-md); margin-bottom: 1.5rem; }
         .hole-creator { background: var(--surface-variant); padding: 1.5rem; border-radius: var(--radius-md); }
-        .hole-list { max-height: 200px; overflow-y: auto; border: 1px solid var(--outline); border-radius: var(--radius-md); padding: 0.5rem; margin-top: 1rem; }
-        .hole-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border-bottom: 1px solid var(--outline); }
+        .hole-list { 
+            border: 1px solid var(--outline); 
+            border-radius: var(--radius-md); 
+            padding: 0.5rem; 
+            margin-top: 1rem; 
+        }        
+        .hole-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 0.75rem; 
+            border-bottom: 1px solid var(--outline); 
+        }
+        .hole-item > span {
+            flex-grow: 1;
+        }       
         .hole-item:last-child { border-bottom: none; }
         .hole-marker {
             background: var(--primary-green); border: 3px solid white; border-radius: 50%; color: white;
@@ -228,9 +251,9 @@
         }
         .hole-marker:hover { transform: scale(1.2); background: var(--secondary-green); box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
         .center-marker {
-    font-size: 24px;
-    cursor: grab;
-}
+            font-size: 24px;
+            cursor: grab;
+        }
         .error { color: #f87171; font-size: 0.875rem; margin-top: 0.5rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--off); border-radius: var(--radius-sm); }
         .loading, .empty-state { text-align: center; color: var(--on-surface-variant); padding: 2rem; font-style: italic; }
 
@@ -299,7 +322,6 @@
 
                 <div class="form-group">
                     <label>2. Course Location</label>
-                    <p style="font-size: 0.875rem; color: var(--on-surface-variant); margin-bottom: 0.75rem;">Pan and zoom to find the course. Drag the 🏌️ marker to set the precise center.</p>
                     <div id="courseMap" class="map-container"></div>
                 </div>
 
@@ -356,7 +378,6 @@
 
         // DOM elements
         const userEmail = document.getElementById('userEmail');
-        const logoutBtn = document.getElementById('logoutBtn');
         const createCourseBtn = document.getElementById('createCourseBtn');
         const courseModal = document.getElementById('courseModal');
         const courseForm = document.getElementById('courseForm');
@@ -421,9 +442,9 @@
             }
             container.innerHTML = `<ul class="course-list">${courses.map(course => {
                 let actions = `<button class="btn btn-secondary" data-action="edit" data-id="${course.id}">Edit</button><button class="btn btn-danger" data-action="delete" data-id="${course.id}">Delete</button>`;
-if (isAdmin && course.status === 'pending') {
-    actions = `<button class="btn" data-action="approve" data-id="${course.id}">Approve</button>` + actions;
-}
+                if (isAdmin && course.status === 'pending') {
+                    actions = `<button class="btn" data-action="approve" data-id="${course.id}">Approve</button>` + actions;
+                }
                 return `<li class="course-item">
                     <div class="course-info">
                         <h3>${course.name}</h3>
@@ -446,9 +467,14 @@ if (isAdmin && course.status === 'pending') {
                 return;
             }
             container.innerHTML = `<ul class="course-list">${otherUserCourses.map(course => {
-                const actions = course.status === 'pending'
-                    ? `<button class="btn" onclick="approveCourse('${course.id}')">Approve</button><button class="btn btn-danger" onclick="rejectCourse('${course.id}')">Reject</button>`
-                    : `<button class="btn btn-danger" onclick="deleteCourse('${course.id}')">Delete</button>`;
+                let actions = '';
+                if (course.status === 'pending') {
+                    actions += `<button class="btn" data-action="approve" data-id="${course.id}">Approve</button>`;
+                    actions += `<button class="btn btn-danger" data-action="reject" data-id="${course.id}">Reject</button>`;
+                } else {
+                    actions += `<button class="btn btn-danger" data-action="delete" data-id="${course.id}">Delete</button>`;
+                }
+
                 return `<li class="course-item">
                     <div class="course-info">
                         <h3>${course.name}</h3>
@@ -456,14 +482,16 @@ if (isAdmin && course.status === 'pending') {
                     </div>
                     <div style="display: flex; align-items: center; gap: 1rem;">
                         <span class="status-badge status-${course.status}">${course.status}</span>
-                        <div class="course-actions"><button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button>${actions}</div>
+                        <div class="course-actions">
+                            <button class="btn btn-secondary" data-action="edit" data-id="${course.id}">Edit</button>
+                            ${actions}
+                        </div>
                     </div>
                 </li>`;
             }).join('')}</ul>`;
         }
 
         function setupEventListeners() {
-            logoutBtn.addEventListener('click', logout);
             createCourseBtn.addEventListener('click', () => openCourseModal());
             cancelCourseBtn.addEventListener('click', closeCourseModal);
             courseForm.addEventListener('submit', saveCourse);
@@ -472,19 +500,54 @@ if (isAdmin && course.status === 'pending') {
             });
             document.getElementById('userCourses').addEventListener('click', handleCourseAction);
             document.getElementById('allCourses').addEventListener('click', handleCourseAction);
+            document.getElementById('holesList').addEventListener('change', handleParChange);
         }
 
         function handleCourseAction(e) {
-    const button = e.target.closest('button[data-action]');
-    if (!button) return;
+            const button = e.target.closest('button[data-action]');
+            if (!button) return;
 
-    const { action, id } = button.dataset;
+            const { action, id } = button.dataset;
 
-    if (action === 'edit') editCourse(id);
-    else if (action === 'delete') deleteCourse(id);
-    else if (action === 'approve') approveCourse(id);
-    else if (action === 'reject') rejectCourse(id);
-}
+            if (action === 'edit') editCourse(id);
+            else if (action === 'delete') deleteCourse(id);
+            else if (action === 'approve') approveCourse(id);
+            else if (action === 'reject') rejectCourse(id);
+        }
+
+        function handleParChange(e) {
+            // Check if the changed element is a par selector
+            if (e.target.classList.contains('par-selector')) {
+                const holeNumber = parseInt(e.target.dataset.holeNumber);
+                const newPar = parseInt(e.target.value);
+
+                // Find the hole in our data array and update its par
+                const holeToUpdate = courseHoles.find(h => h.number === holeNumber);
+                if (holeToUpdate) {
+                    holeToUpdate.par = newPar;
+                }
+            }
+        }
+
+        function updateHolesList() {
+            const container = document.getElementById('holesList');
+            if (courseHoles.length === 0) {
+                container.innerHTML = '<div class="empty-state">No holes added yet</div>';
+                return;
+            }
+            const sortedHoles = [...courseHoles].sort((a, b) => a.number - b.number);
+            container.innerHTML = sortedHoles.map(hole => `
+                <div class="hole-item">
+                    <span>Hole ${hole.number}</span>
+                    <select class="par-selector" data-hole-number="${hole.number}">
+                        <option value="3" ${hole.par === 3 ? 'selected' : ''}>Par 3</option>
+                        <option value="4" ${hole.par === 4 ? 'selected' : ''}>Par 4</option>
+                        <option value="5" ${hole.par === 5 ? 'selected' : ''}>Par 5</option>
+                    </select>
+                    <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="removeHole(${hole.number})">Remove</button>
+                </div>
+            `).join('');
+        }
 
         function openCourseModal(course = null) {
             editingCourse = course;
@@ -523,12 +586,6 @@ if (isAdmin && course.status === 'pending') {
             maxZoom: 22
         }).addTo(courseMap);
 
-            const centerMarker = L.marker(courseCenter, { draggable: true, icon: L.divIcon({ className: 'center-marker', html: '🏌️', iconSize: [20, 20] }) }).addTo(courseMap);
-            centerMarker.on('dragend', () => {
-                const pos = centerMarker.getLatLng();
-                courseCenter = [pos.lat, pos.lng];
-            });
-
             courseHoles.forEach(addHoleMarker);
             
             courseMap.on('click', (e) => {
@@ -552,8 +609,19 @@ if (isAdmin && course.status === 'pending') {
             addHoleMarker(hole);
             updateHolesList();
 
-            document.getElementById('currentHole').value = holeNumber + 1; // Auto-increment
+            document.getElementById('currentHole').value = findNextAvailableHole(); 
+            
             showError(''); // Clear any previous error
+        }
+
+        function findNextAvailableHole() {
+            const existingHoleNumbers = new Set(courseHoles.map(h => h.number));
+            for (let i = 1; i <= 18; i++) {
+                if (!existingHoleNumbers.has(i)) {
+                    return i; // Return the first missing hole number.
+                }
+            }
+            return 18; // If all holes are filled, default to 18.
         }
 
         function addHoleMarker(hole) {
@@ -587,7 +655,12 @@ if (isAdmin && course.status === 'pending') {
             const sortedHoles = [...courseHoles].sort((a, b) => a.number - b.number);
             container.innerHTML = sortedHoles.map(hole => `
                 <div class="hole-item">
-                    <span>Hole ${hole.number} (Par ${hole.par})</span>
+                    <span>Hole ${hole.number}</span>
+                    <select class="par-selector" data-hole-number="${hole.number}">
+                        <option value="3" ${hole.par === 3 ? 'selected' : ''}>Par 3</option>
+                        <option value="4" ${hole.par === 4 ? 'selected' : ''}>Par 4</option>
+                        <option value="5" ${hole.par === 5 ? 'selected' : ''}>Par 5</option>
+                    </select>
                     <button type="button" class="btn btn-danger" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="removeHole(${hole.number})">Remove</button>
                 </div>
             `).join('');
@@ -620,7 +693,16 @@ if (isAdmin && course.status === 'pending') {
                     if (existing) throw new Error('A course with this name already exists.');
                 }
                 
-                let courseData = { name: courseName, center_lat: courseCenter[0], center_lon: courseCenter[1], zoom: courseMap.getZoom() };
+                const sortedHoles = [...courseHoles].sort((a, b) => a.number - b.number);
+                const firstHole = sortedHoles[0];
+                
+                let courseData = {
+                    name: courseName,
+                    center_lat: firstHole.lat, // Use first hole's latitude
+                    center_lon: firstHole.lon, // Use first hole's longitude
+                    zoom: courseMap.getZoom()
+                };
+
                 let courseId;
 
                 if (editingCourse) {
@@ -651,13 +733,19 @@ if (isAdmin && course.status === 'pending') {
         }
         
         function showError(message) {
-    if (courseError && courseError.style.display !== 'none') {
-        courseError.textContent = message;
-        courseError.style.display = message ? 'block' : 'none';
-    } else {
-        createToast(message, 'error');
-    }
-}
+            // Check if the modal is currently active
+            const isModalActive = courseModal && courseModal.classList.contains('active');
+
+            if (isModalActive) {
+                // If the modal is active, always use the dedicated error div inside it.
+                // This will correctly show errors or hide the div if the message is empty.
+                courseError.textContent = message;
+                courseError.style.display = message ? 'block' : 'none';
+            } else if (message) {
+                // Only create a toast if the modal is NOT active AND there is an actual message.
+                createToast(message, 'error');
+            }
+        }
 
 function showSuccess(message) {
     createToast(message, 'success');
@@ -719,11 +807,6 @@ function createToast(message, type) {
 
         async function rejectCourse(courseId) {
             await deleteCourse(courseId);
-        }
-
-        async function logout() {
-            await supabaseClient.auth.signOut();
-            window.location.href = 'index.html';
         }
 
         initializeDashboard();
