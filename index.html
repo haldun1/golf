@@ -19,8 +19,10 @@
         :root {
             /* Primary brand colours */
             --primary-green: #0d9488;
+            --primary-green-half: hsl(175, 84%, 32%, 50%);
             --secondary-green: #14b8a6;
             --accent-orange: #f59e0b;
+            --accent-orange-half: hsl(38, 92%, 50%, 50%);
             --light-green: #5eead4;
             --dark-green: #134e4a;
 
@@ -498,7 +500,7 @@
         }
 
         .hole-marker {
-            background: var(--primary-green);
+            background: var(--primary-green-half);
             border: 3px solid white;
             border-radius: 50%;
             color: white;
@@ -509,7 +511,7 @@
             font-weight: 700;
             box-shadow: 0 4px 12px var(--shadow-strong);
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: 0.3s;
             font-size: 16px;
         }
 
@@ -519,19 +521,12 @@
         }
 
         .hole-marker.active {
-            background: var(--secondary-green);
-            box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
+            background: rgb(1, 32, 0);
             z-index: 999;
-            
-            width: 46px !important;
-            height: 46px !important;
-            margin-left: -5px;
-            margin-top: -5px;
-            line-height: 40px !important;
         }
 
         .player-marker {
-    background: radial-gradient(circle, var(--accent-orange) 0%, #e64a19 100%) !important;
+    background: var(--accent-orange-half) !important;
     border: 3px solid white !important;
     border-radius: 50% !important;
     box-shadow: 0 3px 8px var(--shadow-strong) !important;
@@ -909,6 +904,46 @@
         .leaflet-zoom-anim .hole-marker {
             transition: none;
         }
+        
+        /* Measurement Tool Styles */
+        .measurement-control {
+            display: none; /* Hidden by default */
+        }
+        .measurement-control a {
+            background-color: white;
+            border: 2px solid var(--outline);
+            color: black;
+            font-family: 'Material Symbols Outlined';
+            width: 34px;
+            height: 34px;
+            line-height: 30px;
+            font-size: 22px;
+        }
+        .measurement-control a:hover {
+            background-color: var(--on-surface-variant);
+        }
+        .measurement-control.active a {
+            background-color: var(--primary-green);
+            color: white;
+            border-color: var(--secondary-green);
+        }
+
+        .measure-marker-icon {
+            background: var(--accent-orange);
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 3px 8px var(--shadow-strong);
+            cursor: move;
+        }
+
+        .distance-tooltip {
+            background: rgba(15, 23, 42, 0.8); /* --background with transparency */
+            border: 1px solid var(--outline);
+            color: var(--on-surface);
+            font-weight: bold;
+            box-shadow: none;
+        }
+
     </style>
 </head>
 <body>
@@ -1059,6 +1094,10 @@
                 </ol>
             </div>
             <div class="help-section">
+                <h3>📏 Measurement Tool</h3>
+                <p>After selecting a hole, a new ruler icon (<span class="material-symbols-outlined" style="font-size: 1em; vertical-align: -0.1em;">straighten</span>) will appear. Tap it to drop a movable measurement dot on the hole. Drag this dot to see distances from it to the hole and your current location.</p>
+            </div>
+            <div class="help-section">
                 <h3>🎛️ Controls & Tips</h3>
                 <ul>
                     <li><strong>Map:</strong> Pinch-zoom and pan just like any other map.</li>
@@ -1104,6 +1143,14 @@ let currentPanelOffset = 0;
 let currentUnit = 'yards';
 let lastAccuracyYards = 0;
 const YARDS_TO_METERS = 0.9144;
+
+// Measurement tool state
+let isMeasuring = false;
+let measureMarker = null;
+let measureLineToHole = null;
+let measureLineToUser = null;
+let measureControl = null;
+
 
 // DOM elements
 const authModal = document.getElementById('authModal');
@@ -1425,6 +1472,10 @@ function updatePosition(position) {
         updateDistance();
     }
 
+    if (isMeasuring) {
+        updateMeasurementVisuals();
+    }
+
     // Show accuracy
     const accuracyYards = Math.round(position.coords.accuracy * 1.09361);
     lastAccuracyYards = accuracyYards;
@@ -1484,6 +1535,10 @@ function handleUnitChange(e) {
     if (lastPlayerPos && selectedHole) {
         updateDistance();
     }
+    
+    if (isMeasuring) {
+        updateMeasurementVisuals();
+    }
 
     // Re-render accuracy if GPS is active
     updateAccuracyDisplay();
@@ -1496,6 +1551,7 @@ function initializeMap() {
         map.remove();
         playerMarker = null;
         distanceLine = null;
+        measureControl = null;
     }
 
     map = L.map('map', {
@@ -1546,6 +1602,19 @@ function initializeMap() {
             .on('click', () => selectHole(number))
             .addTo(map);
     });
+
+    // Initialize measurement control
+    L.Control.Measure = L.Control.extend({
+        onAdd: function(map) {
+            const container = L.DomUtil.create('div', 'leaflet-bar measurement-control');
+            container.innerHTML = '<a href="#" title="Toggle Measurement Tool">straighten</a>';
+            L.DomEvent.on(container, 'click', L.DomEvent.stop)
+                      .on(container, 'click', toggleMeasurement);
+            return container;
+        },
+        onRemove: function(map) {}
+    });
+    measureControl = new L.Control.Measure({ position: 'topright' }).addTo(map);
 }
 
 function createHoleGrid() {
@@ -1578,6 +1647,8 @@ function selectHole(holeNumber) {
 
     // If the same hole is clicked again, deselect it. Otherwise, select the new one.
     if (selectedHole === holeNumber) {
+        stopMeasuring(); // Clean up measurement if active
+        measureControl.getContainer().style.display = 'none';
         selectedHole = null;
         updateDistanceMessage();
         distanceDisplay.textContent = 'Select a Hole';
@@ -1585,11 +1656,13 @@ function selectHole(holeNumber) {
         return;
     }
 
+    stopMeasuring(); // Stop any previous measurement
     selectedHole = holeNumber;
 
     // Activate the new hole
     holeGrid.querySelector(`.hole-card[data-hole="${holeNumber}"]`)?.classList.add('active');
     holeMarkers[holeNumber]?.getElement()?.classList.add('active');
+    measureControl.getContainer().style.display = 'block'; // Show measure tool
 
 
             if (playerMarker) {
@@ -1647,6 +1720,138 @@ function updateDistance() {
     }
 
     distanceMessage.textContent = `to hole ${selectedHole}`;
+}
+
+// --- Measurement Tool Functions ---
+
+function toggleMeasurement(e) {
+    if (e) e.preventDefault();
+    if (!selectedHole) return;
+
+    if (isMeasuring) {
+        stopMeasuring();
+    } else {
+        startMeasuring();
+    }
+}
+
+function startMeasuring() {
+    if (!selectedHole || !currentCourse) return;
+    isMeasuring = true;
+    L.DomUtil.addClass(measureControl.getContainer(), 'active');
+
+    const holePos = currentCourse.holes[selectedHole];
+
+    const measureIcon = L.divIcon({
+        className: 'measure-marker-icon',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+    
+    measureMarker = L.marker([holePos.lat, holePos.lon], { 
+        draggable: true,
+        icon: measureIcon 
+    }).addTo(map);
+
+    measureMarker.bindTooltip("drag me!", {
+        permanent: true,
+        direction: 'top',
+        offset: [0, -15],
+        className: 'distance-tooltip'
+    }).openTooltip();
+
+    measureMarker.on('dragstart', () => {
+        if (measureMarker.getTooltip()) {
+            measureMarker.closeTooltip();
+            measureMarker.unbindTooltip();
+        }
+    });
+
+    measureMarker.on('drag', updateMeasurementVisuals);
+    
+    // Create lines
+    measureLineToHole = L.polyline([], { color: 'white', weight: 2, dashArray: '5, 5' }).addTo(map);
+    measureLineToUser = L.polyline([], { color: '#f59e0b', weight: 2, dashArray: '5, 5' }).addTo(map);
+
+    updateMeasurementVisuals();
+}
+
+function stopMeasuring() {
+    isMeasuring = false;
+    if (measureControl) L.DomUtil.removeClass(measureControl.getContainer(), 'active');
+
+    if (measureMarker) { map.removeLayer(measureMarker); measureMarker = null; }
+    if (measureLineToHole) { map.removeLayer(measureLineToHole); measureLineToHole = null; }
+    if (measureLineToUser) { map.removeLayer(measureLineToUser); measureLineToUser = null; }
+}
+
+function updateMeasurementVisuals() {
+    if (!isMeasuring || !measureMarker) return;
+    
+    const measurePos = measureMarker.getLatLng();
+    const holePos = currentCourse.holes[selectedHole];
+    
+    // Update line to hole
+    measureLineToHole.setLatLngs([[measurePos.lat, measurePos.lng], [holePos.lat, holePos.lon]]);
+    updateDistanceTooltip(measureLineToHole, measurePos, holePos);
+
+    // Update line to user
+    if (playerMarker && lastPlayerPos) {
+        if (!map.hasLayer(measureLineToUser)) {
+            measureLineToUser.addTo(map);
+        }
+        const playerPos = playerMarker.getLatLng();
+        measureLineToUser.setLatLngs([[measurePos.lat, measurePos.lng], [playerPos.lat, playerPos.lng]]);
+        updateDistanceTooltip(measureLineToUser, measurePos, playerPos);
+    } else if (map.hasLayer(measureLineToUser)) {
+        map.removeLayer(measureLineToUser);
+    }
+}
+
+function updateDistanceTooltip(line, posA, posB) {
+    // Standardize longitude property, as Leaflet uses 'lng' and our data uses 'lon'
+    const lonA = posA.lng ?? posA.lon;
+    const lonB = posB.lng ?? posB.lon;
+
+    // Safety check to prevent errors if coordinates are somehow invalid
+    if (typeof posA.lat === 'undefined' || typeof lonA === 'undefined' || typeof posB.lat === 'undefined' || typeof lonB === 'undefined') {
+        return;
+    }
+
+    const distanceMeters = calculateDistance(posA.lat, lonA, posB.lat, lonB);
+    const yards = Math.round(distanceMeters * 1.09361);
+    
+    if (!line.getTooltip()) {
+        line.bindTooltip('', { 
+            permanent: true, 
+            direction: 'center', 
+            className: 'distance-tooltip',
+            opacity: 0 // Start hidden
+        });
+    }
+    const tooltip = line.getTooltip();
+
+    if (yards < 1) {
+        if(tooltip) tooltip.setOpacity(0);
+    } else {
+        let content;
+        if (currentUnit === 'meters') {
+            content = `${Math.round(yards * YARDS_TO_METERS)}m`;
+        } else {
+            content = `${yards}yd`;
+        }
+
+        // Calculate the midpoint for the tooltip
+        const midLat = (posA.lat + posB.lat) / 2;
+        const midLng = (lonA + lonB) / 2;
+        const midPoint = L.latLng(midLat, midLng);
+
+        if(tooltip) {
+            tooltip.setOpacity(1);
+            tooltip.setContent(content);
+            tooltip.setLatLng(midPoint);
+        }
+    }
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
