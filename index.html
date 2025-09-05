@@ -1004,6 +1004,10 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 Course Dashboard
             </button>
+            <button class="side-menu-item" id="helpBtn" aria-label="Help">
+                <span class="material-symbols-outlined">help</span>
+                Help
+            </button>
             <div class="side-menu-item-group">
                 <span class="material-symbols-outlined">straighten</span>Unit
                 <div class="unit-toggle">
@@ -1011,10 +1015,6 @@
                     <button class="unit-btn" data-unit="meters">Meters</button>
                 </div>
             </div>
-            <button class="side-menu-item" id="helpBtn" aria-label="Help">
-                <span class="material-symbols-outlined">help</span>
-                Help
-            </button>
             <div style="padding: 1rem 1.25rem; margin-top: auto;">
                 <p style="text-align: center; color: var(--on-surface-variant); font-size: 0.875rem; margin-bottom: 0.75rem;">Simple Range Finder is free. If you find it useful, consider supporting the developer:</p>
                 <button id="kofiBtn" class="btn" style="width: 100%; background-color: var(--surface-variant); color: var(--on-surface);">
@@ -1101,9 +1101,8 @@
         <div class="modal-body">
             <div class="help-section">
                 <h3>🆓 Completely Free</h3>
-                <p>Simple Range Finder is completely free to use. Enjoy!</p>
+                <p>Simple Range Finder is completely free! <a href="#" onclick="openKofiModal(); return false;">🍵</a></p>
             </div>
-
             <div class="help-section">
                 <h3>⚡ Quick Start</h3>
                 <ol>

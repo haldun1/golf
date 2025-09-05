@@ -72,16 +72,16 @@
         .nav-links a {
             color: var(--on-surface-variant);
             text-decoration: none;
+            font-weight: bold;
             padding: 0.5rem 1rem;
-            border: 1px solid var(--outline);
             border-radius: var(--radius-sm);
             transition: all 0.2s ease;
+            background-color: var(--secondary-green);
+            color: white;
         }
 
         .nav-links a:hover {
-            background: var(--surface-variant);
-            border-color: var(--secondary-green);
-            color: var(--on-surface);
+            background: var(--primary-green);
         }
 
         /* --- Main Content --- */
@@ -261,10 +261,9 @@
 <body>
     <header class="header">
         <div class="header-content">
-            <h1>Dashboard</h1>
+            <h1>Course Dashboard</h1>
             <nav class="nav-links">
                 <a href="index.html">← Back to App</a>
-                <a href="#" id="logoutBtn">Logout</a>
             </nav>
         </div>
     </header>
