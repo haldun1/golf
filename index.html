@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Simple Range Finder</title>
+    <title>Pin Dinstance: A simple, free golf range finder</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
@@ -966,7 +966,7 @@
         <div class="header-top">
             <button class="icon-btn material-symbols-outlined" id="menuBtn" aria-label="Menu">menu</button>
             
-            <div class="logo"><span class="material-symbols-outlined">golf_course</span> Simple Range Finder</div>
+            <div class="logo"><span class="material-symbols-outlined">golf_course</span> A Simple Range Finder</div>
 
             <div class="header-actions">
                 <button class="icon-btn material-symbols-outlined" id="mainHelpBtn" aria-label="Help">help</button>
@@ -1013,15 +1013,20 @@
                 <span class="material-symbols-outlined">help</span>
                 Help
             </button>
+            <button class="side-menu-item" id="feedbackBtn" aria-label="Feedback">
+                <span class="material-symbols-outlined">feedback</span>
+                Feedback
+            </button>
             <div class="side-menu-item-group">
                 <span class="material-symbols-outlined">straighten</span>Unit
                 <div class="unit-toggle">
+
                     <button class="unit-btn active" data-unit="yards">Yards</button>
                     <button class="unit-btn" data-unit="meters">Meters</button>
                 </div>
             </div>
             <div style="padding: 1rem 1.25rem; margin-top: auto;">
-                <p style="text-align: center; color: var(--on-surface-variant); font-size: 0.875rem; margin-bottom: 0.75rem;">Simple Range Finder is free. If you find it useful, consider supporting the developer:</p>
+                <p style="text-align: center; color: var(--on-surface-variant); font-size: 0.875rem; margin-bottom: 0.75rem;">pindistance.com is free. If you find it useful, consider supporting the developer:</p>
                 <button id="kofiBtn" class="btn" style="width: 100%; background-color: var(--surface-variant); color: var(--on-surface);">
                     🍵 Buy me a coffee
                 </button>
@@ -1270,7 +1275,11 @@ function setupEventListeners() {
     
     // Help
     document.getElementById('helpBtn').addEventListener('click', openHelpModal);
+    document.getElementById('feedbackBtn').addEventListener('click', () => {
+        window.open('https://forms.gle/hrj8SEdVEUbCLiwr8', '_blank');
+    });
     document.getElementById('helpClose').addEventListener('click', closeHelpModal);
+
     document.getElementById('mainHelpBtn').addEventListener('click', openHelpModal);
 
     // Ko-fi
