@@ -523,11 +523,21 @@
             font-size: 14px;
         }
 
-        .hole-marker:hover, .hole-marker.active {
-            transform: scale(1.3);
+        .hole-marker:hover {
+            transform: scale(1.1); /* A subtle scale on hover is fine */
+            z-index: 1000; /* Ensure it comes to the front on hover */
+        }
+
+        .hole-marker.active {
             background: var(--secondary-green);
             box-shadow: 0 6px 16px rgba(76, 175, 80, 0.4);
-            z-index: 1000;
+            z-index: 999;
+            
+            width: 46px !important;
+            height: 46px !important;
+            margin-left: -5px;
+            margin-top: -5px;
+            line-height: 40px !important; /* Re-center the text vertically */
         }
 
         .player-marker {
@@ -890,6 +900,10 @@
         .focus-visible {
             outline: 2px solid var(--secondary-green);
             outline-offset: 2px;
+        }
+
+        .leaflet-zoom-anim .hole-marker {
+            transition: none;
         }
     </style>
 </head>
@@ -1430,7 +1444,17 @@ function initializeMap() {
     map = L.map('map', {
         zoomControl: false,
         attributionControl: false
-    }).setView(currentCourse.center, currentCourse.zoom);
+    });
+
+    const holeCoords = Object.values(currentCourse.holes).map(h => [h.lat, h.lon]);
+
+    if (holeCoords.length > 0) {
+        map.fitBounds(holeCoords, { padding: [50, 50] }); // Adds 50px of padding
+    } else {
+        map.setView(currentCourse.center, currentCourse.zoom);
+    }
+
+    L.control.zoom({ position: 'topleft' }).addTo(map);
 
     // after recreating the map, if we have a stored player position and GPS tracking is on, recreate the marker
     if (isTracking && lastPlayerPos) {
@@ -1448,18 +1472,22 @@ function initializeMap() {
     L.control.zoom({ position: 'bottomright' }).addTo(map);
 
     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles © Esri'
-    }).addTo(map);
+            attribution: 'Tiles © Esri',
+            maxNativeZoom: 19,
+            maxZoom: 22
+        }).addTo(map);
 
     // Clear existing markers
     holeMarkers = {};
 
     // Add hole markers
     Object.entries(currentCourse.holes).forEach(([number, hole]) => {
-        const icon = L.divIcon({
-            className: 'hole-marker',
-            html: number
-        });
+            const icon = L.divIcon({
+                className: 'hole-marker',
+                html: number,
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+            });
 
         holeMarkers[number] = L.marker([hole.lat, hole.lon], { icon })
             .on('click', () => selectHole(number))
@@ -1490,34 +1518,33 @@ function createHoleGrid() {
 }
 
 function selectHole(holeNumber) {
-    selectedHole = holeNumber;
+            selectedHole = holeNumber;
 
-    // Update hole grid
-    holeGrid.querySelectorAll('.hole-card').forEach(card => {
-        card.classList.toggle('active', card.dataset.hole === holeNumber);
-    });
+            // Update hole grid
+            holeGrid.querySelectorAll('.hole-card').forEach(card => {
+                card.classList.toggle('active', card.dataset.hole === holeNumber);
+            });
 
-    // Update map markers
-    Object.entries(holeMarkers).forEach(([num, marker]) => {
-        const icon = L.divIcon({
-            className: 'hole-marker' + (num === holeNumber ? ' active' : ''),
-            html: num
-        });
-        marker.setIcon(icon);
-    });
+            // Update map markers by toggling the 'active' class directly on the elements
+            Object.entries(holeMarkers).forEach(([num, marker]) => {
+                const el = marker.getElement();
+                if (el) { // Check that the marker element exists in the DOM
+                    el.classList.toggle('active', num === holeNumber);
+                }
+            });
 
-    if (playerMarker) {
-        updateDistanceLine();
-        updateDistance();
-    }
+            if (playerMarker) {
+                updateDistanceLine();
+                updateDistance();
+            }
 
-    updateDistanceMessage();
-    
-    // Collapse panel after selection on mobile
-    if (window.innerWidth <= 768) {
-        bottomPanel.classList.add('collapsed');
-    }
-}
+            updateDistanceMessage();
+            
+            // Collapse panel after selection on mobile
+            if (window.innerWidth <= 768) {
+                bottomPanel.classList.add('collapsed');
+            }
+        }
 
 function updateDistanceLine() {
     if (!selectedHole || !playerMarker || !currentCourse) return;

@@ -495,7 +495,11 @@
             if (courseMap) courseMap.remove();
 
             courseMap = L.map('courseMap').setView(courseCenter, 16);
-            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: 'Tiles &copy; Esri' }).addTo(courseMap);
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri',
+            maxNativeZoom: 19,
+            maxZoom: 22
+        }).addTo(courseMap);
 
             const centerMarker = L.marker(courseCenter, { draggable: true, icon: L.divIcon({ className: 'center-marker', html: '🏌️', iconSize: [20, 20] }) }).addTo(courseMap);
             centerMarker.on('dragend', () => {
@@ -533,7 +537,16 @@
         }
 
         function addHoleMarker(hole) {
-            const marker = L.marker([hole.lat, hole.lon], { draggable: true, icon: L.divIcon({ className: 'hole-marker', html: hole.number }) }).addTo(courseMap);
+            const marker = L.marker([hole.lat, hole.lon], {
+                draggable: true,
+                icon: L.divIcon({
+                    className: 'hole-marker',
+                    html: hole.number,
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                })
+            }).addTo(courseMap);
+
             marker.on('dragend', () => {
                 const pos = marker.getLatLng();
                 const existingHole = courseHoles.find(h => h.number === hole.number);
