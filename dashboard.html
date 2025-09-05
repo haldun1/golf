@@ -1,4 +1,4 @@
-﻿meta<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -214,18 +214,18 @@
         }
 
         .status-approved {
-            background: #e8f5e8;
-            color: #2e7d32;
+            background: #2e7d32;
+            color: #e8f5e8;
         }
 
         .status-pending {
-            background: #fff3e0;
-            color: #f57c00;
+            background: #f57c00;
+            color: #fff3e0;
         }
 
         .status-private {
-            background: #e3f2fd;
-            color: #1976d2;
+            background: #1976d2;
+            color: #e3f2fd;
         }
 
         .course-actions {
@@ -601,7 +601,21 @@
 
             container.innerHTML = `
                 <ul class="course-list">
-                    ${courses.map(course => `
+                    ${courses.map(course => {
+                        // --- CHANGE START ---
+                        // Dynamically create action buttons
+                        let actions = `
+                            <button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button>
+                            <button class="btn btn-danger" onclick="deleteCourse('${course.id}')">Delete</button>
+                        `;
+
+                        // If user is an admin and the course is pending, add the Approve button
+                        if (isAdmin && course.status === 'pending') {
+                            actions = `<button class="btn" onclick="approveCourse('${course.id}')">Approve</button>` + actions;
+                        }
+                        // --- CHANGE END ---
+
+                        return `
                         <li class="course-item">
                             <div class="course-info">
                                 <h3>${course.name}</h3>
@@ -612,12 +626,12 @@
                             <div style="display: flex; align-items: center; gap: 1rem;">
                                 <span class="status-badge status-${course.status}">${course.status}</span>
                                 <div class="course-actions">
-                                    <button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button>
-                                    <button class="btn btn-danger" onclick="deleteCourse('${course.id}')">Delete</button>
+                                    ${actions}
                                 </div>
                             </div>
                         </li>
-                    `).join('')}
+                        `
+                    }).join('')}
                 </ul>
             `;
         }
@@ -1003,8 +1017,13 @@
                     .eq('id', courseId);
 
                 if (error) throw error;
-                // CHANGED: Refresh the main admin list, which now shows all courses
-                await loadAllCoursesForAdmin();
+                
+                // Refresh both the user's courses and the admin list to ensure the UI is consistent
+                await loadUserCourses();
+                if (isAdmin) {
+                    await loadAllCoursesForAdmin();
+                }
+
             } catch (error) {
                 console.error('Error approving course:', error);
                 alert('Error approving course');

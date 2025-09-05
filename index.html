@@ -78,6 +78,7 @@
             align-items: center;
             justify-content: space-between;
             margin-bottom: 0.75rem;
+            padding-top: 0.5rem;
         }
 
         .logo {
@@ -750,8 +751,19 @@
 
         .side-menu-header {
             display: flex;
-            justify-content: flex-end;
-            padding: 0 1rem 1rem 1rem;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 1rem 1rem 1.25rem;
+        }
+
+        .side-menu-user {
+            font-weight: 500;
+            color: var(--on-surface-variant);
+            font-size: 0.875rem;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: calc(100% - 60px);
         }
 
         .side-menu-content {
@@ -846,11 +858,13 @@
 <div class="app-container">
     <header class="header">
         <div class="header-top">
-            <div class="left-header">
             <button class="icon-btn material-symbols-outlined" id="menuBtn" aria-label="Menu">menu</button>
-                <div class="logo"><span class="material-symbols-outlined">golf_course</span> Simple Range Finder</div>
+            
+            <div class="logo"><span class="material-symbols-outlined">golf_course</span> Simple Range Finder</div>
+
+            <div class="header-actions">
+                <button class="icon-btn material-symbols-outlined" id="mainHelpBtn" aria-label="Help">help</button>
             </div>
-            <div class="header-actions"><!-- GPS toggle moved into bottom panel --></div>
         </div>
         
         <!-- Static current-course label below header -->
@@ -860,6 +874,7 @@
     <!-- Side Menu -->
     <div id="sideMenu" class="side-menu">
         <div class="side-menu-header">
+            <div id="sideMenuUser" class="side-menu-user" style="display: none;"></div>
             <button class="icon-btn" id="sideMenuClose" aria-label="Close">&times;</button>
         </div>
         <!-- Course selector moved into menu -->
@@ -903,7 +918,6 @@
 
     <main class="main-content">
         <div id="map"></div>
-
         <div class="bottom-panel collapsed" id="bottomPanel">
             <div class="panel-handle" id="panelHandle"></div>
             <div class="panel-content">
@@ -1087,6 +1101,7 @@ function setupEventListeners() {
     // Help
     document.getElementById('helpBtn').addEventListener('click', openHelpModal);
     document.getElementById('helpClose').addEventListener('click', closeHelpModal);
+    document.getElementById('mainHelpBtn').addEventListener('click', openHelpModal);
     
     // Modal close on backdrop click
     authModal.addEventListener('click', (e) => {
@@ -1602,23 +1617,31 @@ async function logout() {
 }
 
 function updateUserInterface() {
-    const loginBtn = document.getElementById('loginBtn');
-    const dashboardBtn = document.getElementById('dashboardBtn');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    if (currentUser) {
-        loginBtn.style.display = 'none';
-        dashboardBtn.style.display = 'flex';
-        logoutBtn.style.display = 'flex';
-    } else {
-        loginBtn.style.display = 'flex';
-        dashboardBtn.style.display = 'none';
-        logoutBtn.style.display = 'none';
-    }
-    
-    // Refresh courses to show user-specific data
-    populateDropdown();
-}
+            const loginBtn = document.getElementById('loginBtn');
+            const dashboardBtn = document.getElementById('dashboardBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+            const sideMenuUser = document.getElementById('sideMenuUser'); // Add this
+            
+            if (currentUser) {
+                loginBtn.style.display = 'none';
+                dashboardBtn.style.display = 'flex';
+                logoutBtn.style.display = 'flex';
+                
+                // Add these two lines
+                sideMenuUser.textContent = currentUser.email;
+                sideMenuUser.style.display = 'block';
+            } else {
+                loginBtn.style.display = 'flex';
+                dashboardBtn.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                
+                // Add this line
+                sideMenuUser.style.display = 'none';
+            }
+            
+            // Refresh courses to show user-specific data
+            populateDropdown();
+        }
 
 function openHelpModal() {
     helpModal.classList.add('active');
