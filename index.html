@@ -475,7 +475,7 @@
 
         .hole-card.active {
             border-color: var(--secondary-green);
-            background: var(--light-green);
+            background: var(--primary-green);
             transform: scale(1.05);
             box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
         }
@@ -510,7 +510,7 @@
             box-shadow: 0 4px 12px var(--shadow-strong);
             cursor: pointer;
             transition: all 0.3s ease;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .hole-marker:hover {
@@ -835,6 +835,40 @@
             visibility: visible;
         }
 
+        .side-menu-item-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    color: var(--on-surface-variant);
+}
+
+.unit-toggle {
+    display: flex;
+    background: var(--surface-variant);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--outline);
+    margin-left: auto; /* Pushes the toggle to the right */
+}
+
+.unit-btn {
+    background: none;
+    border: none;
+    color: var(--on-surface-variant);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.unit-btn.active {
+    background: var(--secondary-green);
+    color: white;
+}
+
         .left-header {
             display: flex;
             align-items: center;
@@ -926,7 +960,13 @@
                 <span class="material-symbols-outlined">dashboard</span>
                 Dashboard
             </button>
-
+            <div class="side-menu-item-group">
+                <span class="material-symbols-outlined">straighten</span>
+                <div class="unit-toggle">
+                    <button class="unit-btn active" data-unit="yards">Yards</button>
+                    <button class="unit-btn" data-unit="meters">Meters</button>
+                </div>
+            </div>
             <button class="side-menu-item" id="helpBtn" aria-label="Help">
                 <span class="material-symbols-outlined">help</span>
                 Help
@@ -1061,6 +1101,9 @@ let isDraggingPanel = false;
 let panelDragStartPos = 0;
 let initialPanelOffset = 0;
 let currentPanelOffset = 0;
+let currentUnit = 'yards';
+let lastAccuracyYards = 0;
+const YARDS_TO_METERS = 0.9144;
 
 // DOM elements
 const authModal = document.getElementById('authModal');
@@ -1085,6 +1128,14 @@ const sideMenuOverlay = document.getElementById('sideMenuOverlay');
 
 // Initialize app
 async function initializeApp() {
+    const savedUnit = localStorage.getItem('preferredUnit');
+    if (savedUnit && (savedUnit === 'yards' || savedUnit === 'meters')) {
+        currentUnit = savedUnit;
+        document.querySelectorAll('.unit-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.unit === currentUnit);
+        });
+    }
+    
     // Restore session if it exists in localStorage
     await restoreSession();
 
@@ -1147,6 +1198,8 @@ function setupEventListeners() {
     helpModal.addEventListener('click', (e) => {
         if (e.target === helpModal) closeHelpModal();
     });
+
+    document.querySelector('.unit-toggle').addEventListener('click', handleUnitChange);
 }
 
 async function loadCourses() {
@@ -1332,6 +1385,8 @@ function stopGPS() {
 
     isTracking = false;
     gpsToggle.classList.remove('active');
+    lastAccuracyYards = 0; // Add this line
+    updateAccuracyDisplay(); // Add this line to hide the display
 
     if (playerMarker) {
         map.removeLayer(playerMarker);
@@ -1372,9 +1427,25 @@ function updatePosition(position) {
 
     // Show accuracy
     const accuracyYards = Math.round(position.coords.accuracy * 1.09361);
+    lastAccuracyYards = accuracyYards;
+    updateAccuracyDisplay();
+}
+
+function updateAccuracyDisplay() {
+    if (lastAccuracyYards <= 0 || !isTracking) {
+        document.getElementById('accuracyDisplay').style.display = 'none';
+        return;
+    };
+
     const accuracyDisplay = document.getElementById('accuracyDisplay');
     accuracyDisplay.style.display = 'flex';
-    accuracyDisplay.querySelector('span').textContent = `±${accuracyYards}yd`;
+
+    if (currentUnit === 'meters') {
+        const accuracyMeters = Math.round(lastAccuracyYards * YARDS_TO_METERS);
+        accuracyDisplay.querySelector('span').textContent = `±${accuracyMeters}m`;
+    } else {
+        accuracyDisplay.querySelector('span').textContent = `±${lastAccuracyYards}yd`;
+    }
 }
 
 function handleGPSError(error) {
@@ -1392,6 +1463,30 @@ function handleGPSError(error) {
     }
     showError(message);
     stopGPS();
+}
+
+function handleUnitChange(e) {
+    const button = e.target.closest('.unit-btn');
+    if (!button) return;
+
+    const selectedUnit = button.dataset.unit;
+    if (selectedUnit === currentUnit) return;
+
+    currentUnit = selectedUnit;
+    localStorage.setItem('preferredUnit', currentUnit); // Persist choice
+
+    // Update button styles
+    document.querySelectorAll('.unit-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.unit === currentUnit);
+    });
+
+    // Re-render distances if a position and hole are selected
+    if (lastPlayerPos && selectedHole) {
+        updateDistance();
+    }
+
+    // Re-render accuracy if GPS is active
+    updateAccuracyDisplay();
 }
 
 function initializeMap() {
@@ -1536,15 +1631,21 @@ function updateDistance() {
     const hole = currentCourse.holes[selectedHole];
     const playerPos = playerMarker.getLatLng();
 
-    const distance = calculateDistance(
+    const distanceInMeters = calculateDistance(
         playerPos.lat,
         playerPos.lng,
         hole.lat,
         hole.lon
     );
 
-    const yards = Math.round(distance * 1.09361);
-    distanceDisplay.textContent = `${yards} yards`;
+    const yards = Math.round(distanceInMeters * 1.09361);
+
+    if (currentUnit === 'meters') {
+        distanceDisplay.textContent = `${Math.round(yards * YARDS_TO_METERS)} meters`;
+    } else {
+        distanceDisplay.textContent = `${yards} yards`;
+    }
+
     distanceMessage.textContent = `to hole ${selectedHole}`;
 }
 
