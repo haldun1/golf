@@ -1985,7 +1985,7 @@ async function handleAuth(e) {
         if (result.error) throw result.error;
         
         if (authMode === 'signup') {
-            showSuccess('Please check your email to confirm your account.');
+            showSuccess('Account Created!');
         } else {
             currentUser = result.data.user;
             updateUserInterface();
