@@ -44,6 +44,10 @@
             --radius-xl: 24px;
         }
 
+        *{
+            user-select: none;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--background);
@@ -284,6 +288,15 @@
 
         .bottom-panel.collapsed {
             transform: translateY(calc(100% - 120px));
+        }
+
+        .bottom-panel.dragging {
+            transition: none;
+        }
+
+        #panelHeader {
+            cursor: grab;
+            text-align: center;
         }
 
         .panel-handle {
@@ -585,6 +598,32 @@
 
         .modal-body {
             padding: 1.5rem;
+        }
+
+        .help-section {
+            margin-bottom: 1.5rem;
+        }
+        .help-section:last-of-type {
+            margin-bottom: 0;
+        }
+        .help-section h3 {
+            color: var(--primary-green);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .help-section p, .help-section li {
+            color: var(--on-surface-variant);
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+        }
+        .help-section ul, .help-section ol {
+            padding-left: 1.25rem;
+        }
+        .help-section strong {
+            color: var(--on-surface);
+            font-weight: 600;
         }
 
         /* Form Improvements */
@@ -919,10 +958,14 @@
     <main class="main-content">
         <div id="map"></div>
         <div class="bottom-panel collapsed" id="bottomPanel">
-            <div class="panel-handle" id="panelHandle"></div>
+            
+            <div id="panelHeader">
+                <div class="panel-handle" id="panelHandle"></div>
+                <div class="distance-display" id="distanceDisplay">Select a Hole</div>
+            </div>
+
             <div class="panel-content">
                 <div class="distance-section">
-                    <div class="distance-display" id="distanceDisplay">Select a Hole</div>
                     <div class="distance-meta">
                         <div class="gps-section inline">
                             <span class="gps-label">GPS</span>
@@ -986,21 +1029,28 @@
             <h2>How to Use</h2>
         </div>
         <div class="modal-body">
-            <h3 style="color: var(--primary-green); margin-bottom: 0.5rem;">Getting Started</h3>
-            <p style="margin-bottom: 1rem;">Measure distances to golf holes with precision GPS tracking.</p>
-            
-            <h3 style="color: var(--primary-green); margin-bottom: 0.5rem;">Quick Start</h3>
-            <ol style="margin: 0 0 1rem 1.25rem;">
-                <li>Select a course from the dropdown</li>
-                <li>Turn on GPS tracking</li>
-                <li>Tap a hole to measure distance</li>
-                <li>Move around to see live updates</li>
-            </ol>
-            
-            <h3 style="color: var(--primary-green); margin-bottom: 0.5rem;">Creating Courses</h3>
-            <p style="margin-bottom: 1rem;">Log in to create and manage your own golf courses via the Dashboard.</p>
-            
-            <button type="button" class="btn" id="helpClose" style="width: 100%;">Got it!</button>
+            <div class="help-section">
+                <h3>⚡ Quick Start</h3>
+                <ol>
+                    <li><strong>Choose a course:</strong> Tap the menu (☰) and pick one.</li>
+                    <li><strong>Enable GPS:</strong> Tap the GPS toggle. Allow the browser to use your location.</li>
+                    <li><strong>Select a hole:</strong> Tap a green marker on the map or in the bottom panel. The yardage appears and updates as you walk.</li>
+                </ol>
+            </div>
+            <div class="help-section">
+                <h3>🎛️ Controls & Tips</h3>
+                <ul>
+                    <li><strong>Map:</strong> Pinch-zoom and pan just like any other map.</li>
+                    <li><strong>Accuracy:</strong> A ± value shows how precise the current GPS reading is.</li>
+                    <li><strong>GPS off?</strong> Toggle it anytime to stop tracking and save battery.</li>
+                </ul>
+            </div>
+            <div class="help-section">
+                <h3>➕ Create Your Own Courses</h3>
+                <p>Log in or sign up from the menu to open your Dashboard. There you can create new courses or edit existing ones.</p>
+                <p>When you save a new course, it will be available to you immediately, and to everyone else once the admin approves it.</p>
+            </div>
+            <button type="button" class="btn" id="helpClose" style="width: 100%; margin-top: 1rem;">Got it!</button>
         </div>
     </div>
 </div>
@@ -1027,12 +1077,17 @@ let lastPlayerPos = null; // stores last known player position to preserve marke
 let distanceLine = null;
 let holeMarkers = {};
 let authMode = 'login';
+let isDraggingPanel = false;
+let panelDragStartPos = 0;
+let initialPanelOffset = 0;
+let currentPanelOffset = 0;
 
 // DOM elements
 const authModal = document.getElementById('authModal');
 const helpModal = document.getElementById('helpModal');
 const bottomPanel = document.getElementById('bottomPanel');
 const panelHandle = document.getElementById('panelHandle');
+const panelHeader = document.getElementById('panelHeader');
 const dropdownTrigger = document.getElementById('dropdownTrigger');
 const dropdownOptions = document.getElementById('dropdownOptions');
 const dropdownArrow = document.getElementById('dropdownArrow');
@@ -1046,6 +1101,8 @@ const courseDisplay = document.getElementById('courseDisplay');
 
 const sideMenu = document.getElementById('sideMenu');
 const sideMenuOverlay = document.getElementById('sideMenuOverlay');
+
+
 
 // Initialize app
 async function initializeApp() {
@@ -1077,7 +1134,8 @@ function setupEventListeners() {
 });
     
     // Panel toggle
-    panelHandle.addEventListener('click', togglePanel);
+    panelHeader.addEventListener('mousedown', startPanelDrag);
+    panelHeader.addEventListener('touchstart', startPanelDrag, { passive: false });
     
     // Dropdown
     dropdownTrigger.addEventListener('click', function(e) {
@@ -1747,6 +1805,72 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initializeApp);
 } else {
     initializeApp();
+}
+
+function startPanelDrag(e) {
+    // Prevent page scroll on touch devices
+    if (e.type === 'touchstart') {
+        e.preventDefault();
+    }
+    
+    isDraggingPanel = true;
+    panelDragStartPos = e.touches ? e.touches[0].clientY : e.clientY;
+    bottomPanel.classList.add('dragging');
+
+    // Get the panel's current vertical position from its transform style
+    const style = window.getComputedStyle(bottomPanel);
+    const matrix = new DOMMatrixReadOnly(style.transform);
+    initialPanelOffset = matrix.m42;
+
+    document.addEventListener('mousemove', movePanelDrag);
+    document.addEventListener('touchmove', movePanelDrag);
+    document.addEventListener('mouseup', endPanelDrag);
+    document.addEventListener('touchend', endPanelDrag);
+}
+
+function movePanelDrag(e) {
+    if (!isDraggingPanel) return;
+
+    const currentY = e.touches ? e.touches[0].clientY : e.clientY;
+    const deltaY = currentY - panelDragStartPos;
+    let newOffset = initialPanelOffset + deltaY;
+
+    // Constrain the drag within the fully open and fully collapsed states
+    const minOffset = 0; // Fully open
+    const maxOffset = bottomPanel.offsetHeight - 120; // Fully collapsed
+    newOffset = Math.max(minOffset, Math.min(newOffset, maxOffset));
+
+    bottomPanel.style.transform = `translateY(${newOffset}px)`;
+    currentPanelOffset = newOffset;
+}
+
+function endPanelDrag(e) {
+    if (!isDraggingPanel) return;
+    isDraggingPanel = false;
+
+    bottomPanel.classList.remove('dragging');
+    document.removeEventListener('mousemove', movePanelDrag);
+    document.removeEventListener('touchmove', movePanelDrag);
+    document.removeEventListener('mouseup', endPanelDrag);
+    document.removeEventListener('touchend', endPanelDrag);
+    
+    const dragDistance = Math.abs((e.changedTouches ? e.changedTouches[0].clientY : e.clientY) - panelDragStartPos);
+
+    // If the user moved their finger/mouse only a tiny bit, treat it as a click
+    if (dragDistance < 10) {
+        bottomPanel.classList.toggle('collapsed');
+    } else {
+        // Otherwise, it was a drag, so snap to the closest state
+        const halfwayPoint = (bottomPanel.offsetHeight - 120) / 2;
+        if (currentPanelOffset > halfwayPoint) {
+            bottomPanel.classList.add('collapsed');
+        } else {
+            bottomPanel.classList.remove('collapsed');
+        }
+    }
+
+    // Reset the inline style to allow the CSS classes and transitions to take over again
+    bottomPanel.style.transform = '';
 }
 </script>
 </body>
