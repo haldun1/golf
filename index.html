@@ -1475,18 +1475,27 @@ function createHoleGrid() {
 }
 
 function selectHole(holeNumber) {
-            selectedHole = holeNumber;
+    // Deactivate the previously selected hole, if there was one
+    if (selectedHole) {
+        holeGrid.querySelector(`.hole-card[data-hole="${selectedHole}"]`)?.classList.remove('active');
+        holeMarkers[selectedHole]?.getElement()?.classList.remove('active');
+    }
 
-            holeGrid.querySelectorAll('.hole-card').forEach(card => {
-                card.classList.toggle('active', card.dataset.hole === holeNumber);
-            });
+    // If the same hole is clicked again, deselect it. Otherwise, select the new one.
+    if (selectedHole === holeNumber) {
+        selectedHole = null;
+        updateDistanceMessage();
+        distanceDisplay.textContent = 'Select a Hole';
+        if (distanceLine) map.removeLayer(distanceLine);
+        return;
+    }
 
-            Object.entries(holeMarkers).forEach(([num, marker]) => {
-                const el = marker.getElement();
-                if (el) { // Check that the marker element exists in the DOM
-                    el.classList.toggle('active', num === holeNumber);
-                }
-            });
+    selectedHole = holeNumber;
+
+    // Activate the new hole
+    holeGrid.querySelector(`.hole-card[data-hole="${holeNumber}"]`)?.classList.add('active');
+    holeMarkers[holeNumber]?.getElement()?.classList.add('active');
+
 
             if (playerMarker) {
                 updateDistanceLine();

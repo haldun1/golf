@@ -164,7 +164,6 @@
         .status-badge { padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
         .status-approved { background: #059669; color: white; }
         .status-pending { background: #f59e0b; color: black; }
-        .status-private { background: #2563eb; color: white; }
         .course-actions { display: flex; gap: 0.5rem; }
         .course-actions button { padding: 0.5rem 1rem; font-size: 0.875rem; }
 
@@ -228,7 +227,10 @@
             font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.3); cursor: grab; transition: all 0.2s ease; font-size: 14px;
         }
         .hole-marker:hover { transform: scale(1.2); background: var(--secondary-green); box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
-
+        .center-marker {
+    font-size: 24px;
+    cursor: grab;
+}
         .error { color: #f87171; font-size: 0.875rem; margin-top: 0.5rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.1); border-left: 4px solid var(--off); border-radius: var(--radius-sm); }
         .loading, .empty-state { text-align: center; color: var(--on-surface-variant); padding: 2rem; font-style: italic; }
 
@@ -245,6 +247,15 @@
                 padding: 1.5rem;
             }
         }
+
+        @keyframes slideInDown {
+    from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+}
+@keyframes slideOutUp {
+    from { transform: translateX(-50%) translateY(0); opacity: 1; }
+    to { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+}
     </style>
 </head>
 <body>
@@ -410,10 +421,10 @@
                 return;
             }
             container.innerHTML = `<ul class="course-list">${courses.map(course => {
-                let actions = `<button class="btn btn-secondary" onclick="editCourse('${course.id}')">Edit</button><button class="btn btn-danger" onclick="deleteCourse('${course.id}')">Delete</button>`;
-                if (isAdmin && course.status === 'pending') {
-                    actions = `<button class="btn" onclick="approveCourse('${course.id}')">Approve</button>` + actions;
-                }
+                let actions = `<button class="btn btn-secondary" data-action="edit" data-id="${course.id}">Edit</button><button class="btn btn-danger" data-action="delete" data-id="${course.id}">Delete</button>`;
+if (isAdmin && course.status === 'pending') {
+    actions = `<button class="btn" data-action="approve" data-id="${course.id}">Approve</button>` + actions;
+}
                 return `<li class="course-item">
                     <div class="course-info">
                         <h3>${course.name}</h3>
@@ -460,7 +471,21 @@
             courseModal.addEventListener('click', (e) => {
                 if (e.target === courseModal) closeCourseModal();
             });
+            document.getElementById('userCourses').addEventListener('click', handleCourseAction);
+            document.getElementById('allCourses').addEventListener('click', handleCourseAction);
         }
+
+        function handleCourseAction(e) {
+    const button = e.target.closest('button[data-action]');
+    if (!button) return;
+
+    const { action, id } = button.dataset;
+
+    if (action === 'edit') editCourse(id);
+    else if (action === 'delete') deleteCourse(id);
+    else if (action === 'approve') approveCourse(id);
+    else if (action === 'reject') rejectCourse(id);
+}
 
         function openCourseModal(course = null) {
             editingCourse = course;
@@ -627,9 +652,38 @@
         }
         
         function showError(message) {
-            courseError.textContent = message;
-            courseError.style.display = message ? 'block' : 'none';
-        }
+    if (courseError && courseError.style.display !== 'none') {
+        courseError.textContent = message;
+        courseError.style.display = message ? 'block' : 'none';
+    } else {
+        createToast(message, 'error');
+    }
+}
+
+function showSuccess(message) {
+    createToast(message, 'success');
+}
+
+function createToast(message, type) {
+    const toast = document.createElement('div');
+    const bgColor = type === 'error' ? '#d32f2f' : 'var(--secondary-green)';
+
+    toast.style.cssText = `
+        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+        background: ${bgColor}; color: white; padding: 1rem 1.5rem;
+        border-radius: var(--radius-md); z-index: 10001; font-weight: 500;
+        box-shadow: 0 4px 12px var(--shadow-strong); max-width: calc(100vw - 2rem);
+        text-align: center; animation: slideInDown 0.3s ease;
+    `;
+
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+        toast.style.animation = 'slideOutUp 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+    }, type === 'error' ? 5000 : 3000);
+}
 
         async function editCourse(courseId) {
             try {
@@ -637,7 +691,7 @@
                 if (error) throw error;
                 openCourseModal(data);
             } catch (error) {
-                alert('Error loading course data: ' + error.message);
+                showError('Error loading course data: ' + error.message);
             }
         }
 
@@ -649,7 +703,7 @@
                 await loadUserCourses();
                 if (isAdmin) await loadAllCoursesForAdmin();
             } catch (error) {
-                alert('Error deleting course: ' + error.message);
+                showError('Error deleting course: ' + error.message);
             }
         }
 
@@ -660,7 +714,7 @@
                 await loadUserCourses();
                 if (isAdmin) await loadAllCoursesForAdmin();
             } catch (error) {
-                alert('Error approving course: ' + error.message);
+                showError('Error approving course: ' + error.message);
             }
         }
 
